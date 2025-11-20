@@ -1,123 +1,104 @@
-import React, { useState } from "react";
-import "./TeacherAttendance.css";
+import React, { useEffect, useState } from "react";
+import { apiTomarAsistencia, apiLlamadoLista } from "../config/api";
 
 export default function TeacherAttendance() {
-  const [selectedCourse, setSelectedCourse] = useState("");
-  const [students, setStudents] = useState([
-    { id: 1, name: "Carlos González", grade: "7°A", status: "Presente" },
-    { id: 2, name: "María Torres", grade: "8°B", status: "Ausente" },
-    { id: 3, name: "Julián Pérez", grade: "7°A", status: "Presente" },
-  ]);
+  const [cursoId, setCursoId] = useState("");
+  const [fecha, setFecha] = useState(new Date().toISOString().split("T")[0]);
+  const [roster, setRoster] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  const courses = [...new Set(students.map((s) => s.grade))]; // Cursos únicos
+  async function loadRoster() {
+    if (!cursoId || !fecha) return;
+    setLoading(true);
+    try {
+      const res = await apiLlamadoLista({ curso_id: cursoId, fecha });
+      setRoster(res.roster || []);
+    } catch (e) {
+      console.error(e);
+      alert(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
 
-  const toggleStatus = (id) => {
-    setStudents((prev) =>
-      prev.map((s) =>
-        s.id === id
-          ? { ...s, status: s.status === "Presente" ? "Ausente" : "Presente" }
-          : s
-      )
-    );
-  };
+  useEffect(() => {
+  }, []);
 
-  const handleSave = () => {
-    const filtered = students.filter((s) => s.grade === selectedCourse);
-    console.log("Asistencia guardada:", filtered);
-    alert(`✅ Asistencia del curso ${selectedCourse} guardada correctamente`);
-  };
+  function toggleEstado(idx, estado) {
+    const copy = [...roster];
+    copy[idx].estado = estado;
+    setRoster(copy);
+  }
 
-  const filteredStudents = students.filter(
-    (s) => !selectedCourse || s.grade === selectedCourse
-  );
+  async function handleSubmit(e) {
+    e?.preventDefault();
+    if (!cursoId || !fecha) return alert("Seleccione curso y fecha");
+    const asistencias = roster.map(r => ({
+      estudiante_id: r.estudiante.id,
+      estado: r.estado || "presente",
+      hora_llegada: r.hora_llegada || null,
+      observaciones: r.observaciones || null
+    }));
+    try {
+      await apiTomarAsistencia({ curso_id: Number(cursoId), fecha, asistencias });
+      alert("Asistencia registrada");
+      await loadRoster();
+    } catch (e) {
+      alert(e.message);
+    }
+  }
 
   return (
-    <div className="teacher-attendance">
-      <h2 className="title">
-        <span className="icon">📋</span> Registro de Asistencia
-      </h2>
-      <p className="subtitle">
-        Marca los estudiantes presentes o ausentes en tu clase de hoy.
-      </p>
+    <div>
+      <h2>Tomar Asistencia</h2>
 
-      {/* Selector de curso */}
-      <div className="filter-section">
-        <label htmlFor="course-select">Selecciona el curso:</label>
-        <select
-          id="course-select"
-          value={selectedCourse}
-          onChange={(e) => setSelectedCourse(e.target.value)}
-        >
-          <option value="">-- Elegir curso --</option>
-          {courses.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
-      </div>
+      <form onSubmit={handleSubmit} style={{ marginBottom: 12 }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <input placeholder="Curso ID" value={cursoId} onChange={e=>setCursoId(e.target.value)} />
+          <input type="date" value={fecha} onChange={e=>setFecha(e.target.value)} />
+          <button type="button" onClick={loadRoster} disabled={!cursoId}>Cargar lista</button>
+          <button type="submit" disabled={loading}>Enviar asistencia</button>
+        </div>
+      </form>
 
-      {/* Tabla solo si hay curso seleccionado */}
-      {selectedCourse ? (
-        <div className="attendance-table">
-          <table>
-            <thead>
-              <tr>
-                <th>Nombre</th>
-                <th>Curso</th>
-                <th>Estado</th>
-                <th>Acción</th>
+      {loading ? <div>Cargando...</div> :
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr>
+              <th>Estudiante</th>
+              <th>Estado</th>
+              <th>Hora</th>
+              <th>Observaciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {roster.map((r, i) => (
+              <tr key={r.estudiante.id} style={{ borderBottom: "1px solid #eee" }}>
+                <td>{r.estudiante.nombre}</td>
+                <td>
+                  <select value={r.estado} onChange={e=>toggleEstado(i, e.target.value)}>
+                    <option value="presente">Presente</option>
+                    <option value="ausente">Ausente</option>
+                    <option value="tardanza">Tardanza</option>
+                    <option value="justificado">Justificado</option>
+                  </select>
+                </td>
+                <td>
+                  <input value={r.hora_llegada || ""} onChange={e=>{
+                    const c=[...roster]; c[i].hora_llegada = e.target.value; setRoster(c);
+                  }} placeholder="HH:MM" />
+                </td>
+                <td>
+                  <input value={r.observaciones || ""} onChange={e=>{
+                    const c=[...roster]; c[i].observaciones = e.target.value; setRoster(c);
+                  }} />
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {filteredStudents.map((student) => (
-                <tr key={student.id}>
-                  <td>{student.name}</td>
-                  <td>{student.grade}</td>
-                  <td>
-                    <span
-                      className={`status ${
-                        student.status === "Presente"
-                          ? "status-green"
-                          : "status-red"
-                      }`}
-                    >
-                      {student.status}
-                    </span>
-                  </td>
-                  <td>
-                    <button
-                      onClick={() => toggleStatus(student.id)}
-                      className={
-                        student.status === "Presente"
-                          ? "mark-absent"
-                          : "mark-present"
-                      }
-                    >
-                      {student.status === "Presente"
-                        ? "Marcar Ausente"
-                        : "Marcar Presente"}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <p className="no-course">👆 Selecciona un curso para ver los estudiantes</p>
-      )}
-
-      {selectedCourse && (
-        <div className="save-section">
-          <button className="save-btn" onClick={handleSave}>
-            💾 Guardar Asistencia
-          </button>
-        </div>
-      )}
+            ))}
+            {roster.length===0 && <tr><td colSpan={4}>Lista vacía. Carga la lista.</td></tr>}
+          </tbody>
+        </table>
+      }
     </div>
   );
 }
-
-
-

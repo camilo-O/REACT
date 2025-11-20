@@ -1,5 +1,5 @@
 import "./StudentLayout.css";
-import { NavLink, Outlet } from "react-router-dom";
+import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import {
   Home,
   ClipboardList,
@@ -10,57 +10,57 @@ import {
   Bell,
 } from "lucide-react";
 import React, { useEffect, useState } from "react";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "../firebase";
+import { apiMe } from "../config/api";
 import coopeLogo from "../assets/coope.png"; // 🟦 Escudo del colegio
 
 export default function StudentLayout() {
   const [student, setStudent] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   const handleLogout = () => {
     localStorage.clear();
-    window.location.href = "/login";
+    navigate("/"); // más limpio que window.location
   };
 
   useEffect(() => {
-    const fetchStudentData = async () => {
-      const uid = localStorage.getItem("uid");
-      if (!uid) return;
-
-      try {
-        const docRef = doc(db, "users", uid);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setStudent(docSnap.data());
-        }
-      } catch (error) {
-        console.error("Error obteniendo los datos del estudiante:", error);
-      }
-    };
-
-    fetchStudentData();
+    const token = localStorage.getItem("token");
+    if (!token) {
+      navigate("/");
+      return;
+    }
+    apiMe()
+      .then(r => setStudent(r.user))
+      .catch(handleLogout)
+      .finally(() => setLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const menuItems = [
     { name: "Inicio", icon: <Home size={18} />, path: "/student" },
     { name: "Mis Tareas", icon: <ClipboardList size={18} />, path: "/student/tasks" },
     { name: "Mi Horario", icon: <Calendar size={18} />, path: "/student/schedule" },
+    { name: "Excusas", icon: <MessageSquare size={18} />, path: "/student/excuses" },
     { name: "Eventos", icon: <Sparkles size={18} />, path: "/student/events" },
     { name: "Mensajes", icon: <MessageSquare size={18} />, path: "/student/messages" },
   ];
 
-  const getInitials = (name) => {
-    if (!name) return "CC";
-    const parts = name.trim().split(" ");
-    if (parts.length === 1) return parts[0][0].toUpperCase();
-    return (parts[0][0] + parts[1][0]).toUpperCase();
-  };
+  function nombreCompleto(u) {
+    if (!u) return "";
+    return [u.nombre, u.segundo_nombre, u.apellido1, u.apellido2]
+      .filter(Boolean)
+      .join(" ");
+  }
+
+  function getInitials(u) {
+    if (!u) return "CC";
+    const partes = [u.nombre, u.apellido1].filter(Boolean);
+    return partes.map(p => p[0].toUpperCase()).join("").slice(0, 2);
+  }
 
   return (
     <div className="student-layout">
-      {/* Sidebar */}
       <aside className="student-sidebar">
-        {/* 🔹 Encabezado con logo e info institucional */}
         <div className="brand">
           <img
             src={coopeLogo}
@@ -71,9 +71,8 @@ export default function StudentLayout() {
           <p>Agenda Estudiantil Digital</p>
         </div>
 
-        {/* 🔹 Navegación principal */}
         <nav className="student-menu">
-          {menuItems.map((item) => (
+          {menuItems.map(item => (
             <NavLink
               key={item.name}
               to={item.path}
@@ -85,7 +84,6 @@ export default function StudentLayout() {
           ))}
         </nav>
 
-        {/* 🔹 Botón de cierre de sesión */}
         <div className="logout">
           <button onClick={handleLogout}>
             <LogOut size={18} /> Cerrar Sesión
@@ -93,7 +91,6 @@ export default function StudentLayout() {
         </div>
       </aside>
 
-      {/* Contenido principal */}
       <main className="student-main">
         <header className="student-header">
           <div className="left">
@@ -101,13 +98,19 @@ export default function StudentLayout() {
             Panel del Estudiante
           </div>
 
-          <div className="profile">
-            <div className="avatar">{getInitials(student?.name)}</div>
-            <div className="info">
-              <p className="name">{student ? student.name : "Cargando..."}</p>
-              <p className="role">Estudiante</p>
+            <div className="profile">
+              <div className="avatar">{getInitials(student)}</div>
+              <div className="info">
+                <p className="name">
+                  {loading
+                    ? "Cargando..."
+                    : student
+                      ? nombreCompleto(student)
+                      : "Sin datos"}
+                </p>
+                <p className="role">Estudiante</p>
+              </div>
             </div>
-          </div>
         </header>
 
         <div className="student-content">
@@ -117,6 +120,5 @@ export default function StudentLayout() {
     </div>
   );
 }
-
 
 

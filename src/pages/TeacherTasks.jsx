@@ -1,196 +1,154 @@
-// src/pages/TeacherTasks.jsx
-import { useEffect, useState } from "react";
-import { db } from "../firebase";
+import React, { useEffect, useState, useContext } from "react";
+import { AuthContext } from "../context/AuthContext";
 import {
-  collection,
-  query,
-  where,
-  getDocs,
-  addDoc,
-  Timestamp,
-} from "firebase/firestore";
+  apiListCursos,
+  apiTareasCurso,
+  apiCrearTarea,
+  apiEntregasDeTarea
+} from "../config/api";
 import "./TeacherTasks.css";
 
 export default function TeacherTasks() {
-  const [tasks, setTasks] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { user, loading: authLoading } = useContext(AuthContext);
+
+  const [cursos, setCursos] = useState([]);
+  const [cursoId, setCursoId] = useState("");
+  const [tareas, setTareas] = useState([]);
+  const [loading, setLoading] = useState(false);
+
   const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({
+    titulo: "",
+    descripcion: "",
+    fecha_entrega: "",
+    prioridad: "media",
+    materia_id: ""
+  });
 
-  // Campos del formulario
-  const [title, setTitle] = useState("");
-  const [subject, setSubject] = useState("");
-  const [grade, setGrade] = useState("");
-  const [description, setDescription] = useState("");
-  const [dueDate, setDueDate] = useState("");
+  const [selectedTarea, setSelectedTarea] = useState(null);
+  const [entregas, setEntregas] = useState([]);
+  const [entregasLoading, setEntregasLoading] = useState(false);
 
-  const teacherUid = localStorage.getItem("uid");
-
-  // 🔹 Cargar tareas del profesor desde Firestore
   useEffect(() => {
-    const fetchTasks = async () => {
+    async function load() {
       try {
-        if (!teacherUid) return;
-        const q = query(
-          collection(db, "tasks"),
-          where("teacherUid", "==", teacherUid)
+        const all = await apiListCursos();
+        const my = (all || []).filter(c =>
+          (c.profesor && c.profesor.id === user?.id) || c.profesor_id === user?.id
         );
-        const querySnapshot = await getDocs(q);
-
-        const data = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-
-        setTasks(data);
-      } catch (error) {
-        console.error("Error al obtener tareas:", error);
-      } finally {
-        setLoading(false);
+        setCursos(my);
+      } catch (e) {
+        console.error(e);
+        setCursos([]);
       }
-    };
-
-    fetchTasks();
-  }, [teacherUid]);
-
-  // 🔹 Crear nueva tarea
-  const handleAddTask = async (e) => {
-    e.preventDefault();
-    if (!title || !subject || !grade || !dueDate) {
-      alert("Por favor completa todos los campos obligatorios.");
-      return;
     }
+    if (!authLoading) load();
+  }, [user, authLoading]);
 
+  async function loadTareas(cId) {
+    if (!cId) return setTareas([]);
+    setLoading(true);
     try {
-      await addDoc(collection(db, "tasks"), {
-        title,
-        subject,
-        grade,
-        description,
-        dueDate,
-        status: "Pendiente",
-        teacherUid,
-        createdAt: Timestamp.now(),
-      });
-
-      alert("✅ Tarea creada correctamente.");
-      setShowForm(false);
-      setTitle("");
-      setSubject("");
-      setGrade("");
-      setDescription("");
-      setDueDate("");
-
-      // Recargar tareas
-      const q = query(
-        collection(db, "tasks"),
-        where("teacherUid", "==", teacherUid)
-      );
-      const querySnapshot = await getDocs(q);
-      setTasks(querySnapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
-    } catch (error) {
-      console.error("Error al crear tarea:", error);
-      alert("❌ Error al crear la tarea.");
+      const data = await apiTareasCurso(cId);
+      setTareas(Array.isArray(data) ? data : []);
+    } catch (e) {
+      alert(e.message);
+    } finally {
+      setLoading(false);
     }
-  };
+  }
+
+  async function handleCrear(e) {
+    e.preventDefault();
+    if (!form.titulo || !form.fecha_entrega || !cursoId) return alert("Título, fecha y curso obligatorios");
+    try {
+      await apiCrearTarea({ ...form, curso_id: Number(cursoId) });
+      setForm({ titulo: "", descripcion: "", fecha_entrega: "", prioridad: "media", materia_id: "" });
+      setShowForm(false);
+      loadTareas(cursoId);
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  async function verEntregas(tarea) {
+    setSelectedTarea(tarea);
+    setEntregasLoading(true);
+    try {
+      const res = await apiEntregasDeTarea(tarea.id);
+      // backend devuelve { tarea_id, entregas }
+      setEntregas(res.entregas || res);
+    } catch (e) {
+      alert(e.message);
+      setEntregas([]);
+    } finally {
+      setEntregasLoading(false);
+    }
+  }
 
   return (
     <div className="teacher-tasks">
-      <h2 className="title">Gestionar Tareas</h2>
-      <p className="subtitle">
-        Crea, asigna y califica tareas para tus cursos.
-      </p>
+      <h2>Gestionar Tareas</h2>
 
-      <div className="actions">
-        <button className="add-btn" onClick={() => setShowForm(!showForm)}>
-          {showForm ? "Cancelar" : "+ Nueva Tarea"}
-        </button>
+      <div style={{ marginBottom: 12 }}>
+        <select value={cursoId} onChange={e => { setCursoId(e.target.value); loadTareas(e.target.value); }}>
+          <option value="">Selecciona curso</option>
+          {cursos.map(c => <option key={c.id} value={c.id}>{c.nombre} ({c.grado}-{c.grupo})</option>)}
+        </select>
+        <button onClick={() => loadTareas(cursoId)} disabled={!cursoId}>Cargar tareas</button>
+        <button onClick={() => setShowForm(s => !s)} style={{ marginLeft: 8 }}>{showForm ? "Cancelar" : "Nueva tarea"}</button>
       </div>
 
-      {/* 🔹 Formulario para nueva tarea */}
       {showForm && (
-        <form onSubmit={handleAddTask} className="task-form">
-          <input
-            type="text"
-            placeholder="Título de la tarea"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            required
-          />
-          <input
-            type="text"
-            placeholder="Asignatura"
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-            required
-          />
-          <input
-            type="text"
-            placeholder="Grado"
-            value={grade}
-            onChange={(e) => setGrade(e.target.value)}
-            required
-          />
-          <textarea
-            placeholder="Descripción"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
-          <input
-            type="date"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-            required
-          />
-          <button type="submit" className="add-btn">
-            Guardar Tarea
-          </button>
+        <form onSubmit={handleCrear} style={{ marginBottom: 12, display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <input required placeholder="Título" value={form.titulo} onChange={e=>setForm({...form,titulo:e.target.value})}/>
+          <input type="date" required value={form.fecha_entrega} onChange={e=>setForm({...form,fecha_entrega:e.target.value})}/>
+          <select value={form.prioridad} onChange={e=>setForm({...form,prioridad:e.target.value})}>
+            <option value="baja">Baja</option>
+            <option value="media">Media</option>
+            <option value="alta">Alta</option>
+          </select>
+          <input placeholder="Materia (id opcional)" value={form.materia_id} onChange={e=>setForm({...form,materia_id:e.target.value})}/>
+          <input placeholder="Descripción (opcional)" value={form.descripcion} onChange={e=>setForm({...form,descripcion:e.target.value})} style={{ minWidth: 220 }}/>
+          <button type="submit">Crear</button>
         </form>
       )}
 
-      {/* 🔹 Tabla de tareas */}
-      {loading ? (
-        <p>Cargando tareas...</p>
-      ) : tasks.length === 0 ? (
-        <p>No hay tareas creadas todavía.</p>
-      ) : (
-        <div className="tasks-table">
-          <table>
-            <thead>
-              <tr>
-                <th>Título</th>
-                <th>Asignatura</th>
-                <th>Grado</th>
-                <th>Fecha de Entrega</th>
-                <th>Estado</th>
-              </tr>
-            </thead>
-            <tbody>
-              {tasks.map((t) => (
-                <tr key={t.id}>
-                  <td>{t.title}</td>
-                  <td>{t.subject}</td>
-                  <td>{t.grade}</td>
-                  <td>{t.dueDate || "—"}</td>
-                  <td>
-                    <span
-                      className={`status ${
-                        t.status === "Pendiente"
-                          ? "status-yellow"
-                          : t.status === "En curso"
-                          ? "status-blue"
-                          : "status-green"
-                      }`}
-                    >
-                      {t.status}
-                    </span>
-                  </td>
-                </tr>
+      {loading ? <div>Cargando...</div> : (
+        <ul>
+          {tareas.length === 0 ? <li>No hay tareas</li> :
+            tareas.map(t => (
+              <li key={t.id} style={{ marginBottom: 8 }}>
+                <strong>{t.titulo}</strong> — vence: {t.fecha_entrega} — prioridad: {t.prioridad}
+                <div style={{ marginTop: 6 }}>
+                  <button onClick={() => verEntregas(t)}>Ver entregas</button>
+                  {/* opcional: editar/eliminar si implementas endpoints */}
+                </div>
+              </li>
+            ))
+          }
+        </ul>
+      )}
+
+      {selectedTarea && (
+        <section style={{ marginTop: 18, borderTop: "1px solid #eee", paddingTop: 12 }}>
+          <h3>Entregas — {selectedTarea.titulo}</h3>
+          {entregasLoading ? <div>Cargando entregas...</div> : (
+            entregas.length === 0 ? <div>No hay entregas</div> :
+            <ul>
+              {entregas.map(en => (
+                <li key={en.id} style={{ marginBottom: 8 }}>
+                  <div><strong>{en.estudiante?.nombre || en.estudiante_id}</strong> — {new Date(en.updated_at || en.created_at).toLocaleString()}</div>
+                  <div>
+                    {en.archivo_ruta && <a href={en.archivo_ruta} target="_blank" rel="noreferrer">Descargar archivo</a>}
+                    {en.imagen_ruta && <span style={{ marginLeft: 8 }}><a href={en.imagen_ruta} target="_blank" rel="noreferrer">Ver imagen</a></span>}
+                  </div>
+                </li>
               ))}
-            </tbody>
-          </table>
-        </div>
+            </ul>
+          )}
+        </section>
       )}
     </div>
   );
 }
-

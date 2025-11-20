@@ -1,80 +1,133 @@
-// src/pages/TeacherStudents.jsx
-import { useEffect, useState } from "react";
-import { collection, onSnapshot, query, where } from "firebase/firestore";
-import { db } from "../firebase";
+import React, { useEffect, useState, useContext } from "react";
+import { apiListCursos, apiCurso } from "../config/api";
+import { AuthContext } from "../context/AuthContext";
 import "./TeacherStudents.css";
 
 export default function TeacherStudents() {
-  const [students, setStudents] = useState([]);
+  const { user, loading: authLoading } = useContext(AuthContext);
+  const [cursos, setCursos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  // mapa cursoId -> estudiantes[]
+  const [studentsMap, setStudentsMap] = useState({});
+  const [expanded, setExpanded] = useState(null);
 
-  // 🔥 Cargar estudiantes en tiempo real desde Firestore
   useEffect(() => {
-    const q = query(collection(db, "users"), where("role", "==", "student"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setStudents(data);
-    });
+    async function load() {
+      setLoading(true);
+      setError(null);
+      try {
+        const all = await apiListCursos();
+        // filtrar cursos donde el profesor sea el usuario actual
+        const mine = (all || []).filter(c =>
+          (c.profesor && c.profesor.id === user?.id) || c.profesor_id === user?.id
+        );
+        setCursos(mine);
+      } catch (e) {
+        console.error("Error cargando cursos:", e);
+        setError(e.message || "Error al cargar cursos");
+        setCursos([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+    if (!authLoading) load();
+  }, [user, authLoading]);
 
-    return () => unsubscribe(); // limpiar el listener
-  }, []);
+  async function toggleCurso(cursoId) {
+    if (expanded === cursoId) {
+      setExpanded(null);
+      return;
+    }
+    setExpanded(cursoId);
+    if (studentsMap[cursoId]) return; // ya cargado
+
+    try {
+      const curso = await apiCurso(cursoId);
+      // backend devuelve curso con campo 'estudiantes'
+      const estudiantes = curso.estudiantes || curso.estudiantes || [];
+      setStudentsMap(prev => ({ ...prev, [cursoId]: estudiantes }));
+    } catch (e) {
+      console.error("Error cargando estudiantes del curso:", e);
+      setStudentsMap(prev => ({ ...prev, [cursoId]: [] }));
+    }
+  }
+
+  function getInitials(name, apellido) {
+    if (!name) return "CC";
+    const parts = [name, apellido].filter(Boolean);
+    return parts.map(p => p[0]?.toUpperCase()).join("").slice(0, 2);
+  }
+
+  if (authLoading || loading) return <div>Cargando mis cursos...</div>;
+  if (error) return <div style={{ color: "crimson" }}>Error: {error}</div>;
 
   return (
     <div className="teacher-students">
       <h2 className="title">Mis Estudiantes</h2>
-      <p className="subtitle">
-        Consulta el listado de estudiantes y su desempeño académico.
-      </p>
+      <p className="subtitle">Selecciona un curso para ver los estudiantes inscritos.</p>
 
-      <div className="students-table">
-        <table>
-          <thead>
-            <tr>
-              <th>Nombre</th>
-              <th>Email</th>
-              <th>Grado</th>
-              <th>Desempeño</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {students.length > 0 ? (
-              students.map((s) => (
-                <tr key={s.id}>
-                  <td>{s.name}</td>
-                  <td>{s.email}</td>
-                  <td>{s.grade || "—"}</td>
-                  <td>
-                    <span
-                      className={`badge ${
-                        s.performance === "Excelente"
-                          ? "badge-green"
-                          : s.performance === "Bueno"
-                          ? "badge-blue"
-                          : "badge-yellow"
-                      }`}
-                    >
-                      {s.performance || "Sin datos"}
-                    </span>
-                  </td>
-                  <td>
-                    <button className="view-btn">Ver Perfil</button>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="5" style={{ textAlign: "center", padding: "1rem" }}>
-                  No hay estudiantes registrados.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      {cursos.length === 0 ? (
+        <div className="empty">No tienes cursos asignados.</div>
+      ) : (
+        <div className="courses-list">
+          {cursos.map(c => (
+            <div key={c.id} className="course-card">
+              <div className="course-head">
+                <div>
+                  <strong className="course-name">{c.nombre}</strong>
+                  <div className="meta">{c.grado} • Grupo {c.grupo}</div>
+                </div>
+                <div className="controls">
+                  <button onClick={() => toggleCurso(c.id)}>
+                    {expanded === c.id ? "Ocultar" : "Ver estudiantes"}
+                  </button>
+                </div>
+              </div>
+
+              {expanded === c.id && (
+                <div className="students-section">
+                  {(!studentsMap[c.id] || studentsMap[c.id].length === 0) ? (
+                    <div className="empty">No hay estudiantes matriculados en este curso.</div>
+                  ) : (
+                    <table className="students-table">
+                      <thead>
+                        <tr>
+                          <th>Alumno</th>
+                          <th>Email</th>
+                          <th>Teléfono</th>
+                          <th>Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {studentsMap[c.id].map(s => (
+                          <tr key={s.id}>
+                            <td>
+                              <div className="student-cell">
+                                <div className="avatar">{getInitials(s.nombre, s.apellido1)}</div>
+                                <div>
+                                  <div className="student-name">{`${s.nombre} ${s.apellido1 || ""}`.trim()}</div>
+                                  <div className="student-meta">{s.fecha_nacimiento ? `Nac: ${s.fecha_nacimiento}` : ""}</div>
+                                </div>
+                              </div>
+                            </td>
+                            <td>{s.email || s.username || "—"}</td>
+                            <td>{s.telefono || "—"}</td>
+                            <td>
+                              <button onClick={() => alert(`Ver perfil ${s.id}`)}>Ver perfil</button>
+                              <button onClick={() => alert(`Enviar mensaje a ${s.id}`)}>Mensaje</button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
-

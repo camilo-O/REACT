@@ -1,0 +1,217 @@
+
+.admin-layout {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f9fafb;
+  font-family: "Inter", sans-serif;
+  color: #1f2937;
+}
+
+/* Sidebar */
+.admin-sidebar {
+  width: 270px;
+  background: linear-gradient(180deg, #06203d 0%, #0d335b 50%, #134a84 100%);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  padding: 1.8rem 1.4rem;
+  box-shadow: 4px 0 12px rgba(0, 0, 0, 0.05);
+  position: relative;
+  z-index: 10;
+}
+
+.admin-sidebar .brand {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.admin-sidebar .brand-logo {
+  width: 95px;
+  height: 95px;
+  object-fit: contain;
+  margin-bottom: 1rem;
+  filter: drop-shadow(0 2px 3px rgba(255,255,255,0.18));
+}
+
+.admin-sidebar .brand h1 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-bottom: 0.3rem;
+  line-height: 1.2;
+}
+
+.admin-sidebar .brand p {
+  font-size: 0.85rem;
+  color: #c6daf4;
+  opacity: 0.9;
+}
+
+/* Menú */
+.admin-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  margin-top: 1rem;
+  flex-grow: 1;
+}
+
+.admin-menu a {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  color: #ffffff;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all .25s, transform .15s;
+}
+
+.admin-menu a:hover {
+  background: rgba(255,255,255,0.16);
+  transform: translateX(4px);
+}
+
+.admin-menu a.active {
+  background: #ffffff;
+  color: #06203d;
+  font-weight: 600;
+  box-shadow: 0 0 6px rgba(255,255,255,0.35);
+}
+
+/* Logout */
+.admin-sidebar .logout {
+  margin-top: auto;
+  padding-top: 1.4rem;
+  border-top: 1px solid rgba(255,255,255,0.15);
+}
+
+.admin-sidebar .logout button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .75rem;
+  width: 100%;
+  background: rgba(255,255,255,0.18);
+  border: none;
+  padding: 0.9rem 1rem;
+  border-radius: 10px;
+  color: #fff;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all .25s;
+}
+
+.admin-sidebar .logout button:hover {
+  background: #dc2626;
+  transform: scale(1.02);
+}
+
+/* Main */
+.admin-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #f9fafb;
+}
+
+/* Header */
+.admin-header {
+  background: #ffffff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  border-bottom: 1px solid #e5e7eb;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.admin-header .left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #06203d;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.admin-header .profile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.admin-header .avatar {
+  width: 42px;
+  height: 42px;
+  background: linear-gradient(135deg,#0d335b,#134a84);
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: .95rem;
+  box-shadow: 0 0 8px rgba(19,74,132,0.35);
+}
+
+.admin-header .info p {
+  margin: 0;
+  line-height: 1.1;
+}
+
+.admin-header .info .name {
+  font-weight: 600;
+  color: #111827;
+}
+
+.admin-header .info .role {
+  font-size: 0.75rem;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+
+/* Contenido */
+.admin-content {
+  padding: 2rem;
+  flex: 1;
+  background: #f3f4f6;
+  overflow-y: auto;
+  height: calc(100vh - 80px);
+  animation: fadeIn .3s ease-in-out;
+}
+
+.admin-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.admin-content::-webkit-scrollbar-thumb {
+  background-color: rgba(0,0,0,0.15);
+  border-radius: 8px;
+}
+
+@keyframes fadeIn {
+  from { opacity:0; transform: translateY(8px); }
+  to { opacity:1; transform: translateY(0); }
+}
+
+/* Responsive */
+@media (max-width: 860px) {
+  .admin-sidebar { width: 230px; padding: 1.4rem 1.1rem; }
+  .admin-menu a { padding: 0.7rem 0.85rem; }
+  .admin-header { padding: 0.8rem 1.2rem; }
+  .admin-content { padding: 1.4rem; }
+}
+
+@media (max-width: 680px) {
+  .admin-layout { flex-direction: column; }
+  .admin-sidebar { flex-direction: row; width: 100%; overflow-x: auto; }
+  .admin-sidebar .brand { display:none; }
+  .admin-menu { flex-direction: row; flex-wrap: wrap; gap: .5rem; }
+  .admin-menu a { flex: 1 1 calc(50% - .5rem); justify-content: flex-start; }
+  .admin-sidebar .logout { border-top: none; margin-top: 0; padding-top: .5rem; }
+}

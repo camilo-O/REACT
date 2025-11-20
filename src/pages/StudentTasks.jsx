@@ -1,84 +1,50 @@
 import React, { useEffect, useState } from "react";
-import "./StudentTasks.css";
-import { ClipboardList, CheckCircle2, Clock, CalendarDays } from "lucide-react";
-import { collection, getDocs, query, where } from "firebase/firestore";
-import { db } from "../firebase"; // Ajusta si tu archivo de Firebase tiene otra ruta
+import { apiTareasMias, apiEntregarTarea } from "../config/api";
 
 export default function StudentTasks() {
-  const [tasks, setTasks] = useState([]);
+  const [tareas, setTareas] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchTasks = async () => {
-      try {
-        const uid = localStorage.getItem("uid"); // guardado en login
-        const q = query(collection(db, "tasks"), where("studentUid", "==", uid));
-        const querySnapshot = await getDocs(q);
+  const cargar = () => {
+    setLoading(true);
+    apiTareasMias()
+      .then(setTareas)
+      .catch(e => console.error(e))
+      .finally(() => setLoading(false));
+  };
 
-        const taskData = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
+  useEffect(cargar, []);
 
-        setTasks(taskData);
-      } catch (error) {
-        console.error("Error obteniendo tareas:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  async function entregar(t) {
+    try {
+      await apiEntregarTarea({
+        tarea_id: t.id,
+        // Ajusta según tu payload real (imagen_ruta o archivo_ruta obligatorio)
+        archivo_ruta: "entrega.txt"
+      });
+      cargar();
+    } catch (e) {
+      alert(e.message);
+    }
+  }
 
-    fetchTasks();
-  }, []);
+  if (loading) return <div>Cargando tareas...</div>;
 
   return (
-    <div className="student-tasks">
-      <h2 className="title">
-        <ClipboardList className="icon" /> Mis Tareas
-      </h2>
-
-      {loading ? (
-        <p className="loading">Cargando tareas...</p>
-      ) : tasks.length === 0 ? (
-        <p className="no-tasks">No tienes tareas asignadas por el momento.</p>
-      ) : (
-        <div className="tasks-grid">
-          {tasks.map((task) => (
-            <div
-              key={task.id}
-              className={`task-card ${
-                task.status === "Completada"
-                  ? "completed"
-                  : task.status === "Pendiente"
-                  ? "pending"
-                  : "in-progress"
-              }`}
-            >
-              <div className="task-header">
-                <h3>{task.title}</h3>
-                <span className={`status ${task.status.toLowerCase()}`}>
-                  {task.status}
-                </span>
-              </div>
-
-              <p className="subject">{task.subject}</p>
-              <p className="desc">{task.description}</p>
-
-              <div className="task-footer">
-                <span className="date">
-                  <CalendarDays size={14} /> Entrega: {task.dueDate}
-                </span>
-                {task.status === "Completada" ? (
-                  <CheckCircle2 className="done-icon" />
-                ) : (
-                  <Clock className="pending-icon" />
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+    <div>
+      <h2>Mis Tareas</h2>
+      <ul>
+        {tareas.map(t => (
+          <li key={t.id}>
+            <strong>{t.titulo}</strong> (vence: {t.fecha_entrega}) — {t.entregada ? "Entregada" : "Pendiente"}
+            {!t.entregada && (
+              <button onClick={() => entregar(t)} style={{ marginLeft: 8 }}>
+                Entregar
+              </button>
+            )}
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
-
