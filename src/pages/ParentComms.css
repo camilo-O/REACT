@@ -1,68 +1,17 @@
-.parent-comms {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-}
+.parent-comms { padding:18px; max-width:980px; margin:0 auto; font-family: Inter, system-ui, sans-serif; color:#0b1d4a; }
+.page-title { margin:0 0 6px 0; font-size:1.3rem; }
+.page-subtitle { margin:0 0 12px 0; color:#6b7280; }
 
-.page-title {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: #0a2e6d; /* azul institucional más oscuro */
-  margin-bottom: 0.2rem;
-}
+.messages-list { display:flex; flex-direction:column; gap:12px; margin-top:12px; }
+.message-card { background:#fff; border:1px solid #eef6ff; padding:12px; border-radius:10px; box-shadow:0 6px 18px rgba(10,25,55,0.03); }
+.message-header { display:flex; justify-content:space-between; align-items:start; gap:10px; }
+.subject { margin:0; color:#06203d; }
+.meta { margin:6px 0 0 0; color:#6b7280; font-size:0.9rem; }
+.sender { font-weight:700; }
+.message-content { margin-top:10px; color:#374151; }
 
-.page-subtitle {
-  font-size: 1rem;
-  color: #6b7280;
-  margin-bottom: 1.5rem;
-}
+.empty { padding:12px; text-align:center; color:#6b7280; border-radius:8px; background:#fff; border:1px dashed #e6eef9; }
+.error { background:#fff1f2; color:#9f1239; padding:10px; border-radius:8px; }
+.small { font-size:0.85rem; color:#6b7280; }
 
-/* --- Tarjetas de mensajes --- */
-.messages-list {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.message-card {
-  background: white;
-  border-radius: 1rem;
-  box-shadow: 0 1px 4px rgb(0 0 0 / 0.06);
-  padding: 1.5rem 2rem;
-  transition: all 0.2s ease;
-  border-left: 6px solid #0a2e6d;
-}
-
-.message-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 10px rgb(0 0 0 / 0.1);
-}
-
-.message-card.read {
-  background: #f9fafb;
-  opacity: 0.9;
-}
-
-.message-header h3 {
-  font-size: 1.1rem;
-  color: #1f2937;
-  margin-bottom: 0.25rem;
-}
-
-.meta {
-  font-size: 0.85rem;
-  color: #6b7280;
-}
-
-.sender {
-  font-weight: 600;
-  color: #0a2e6d;
-}
-
-.message-content {
-  font-size: 0.95rem;
-  color: #374151;
-  line-height: 1.5;
-  margin-top: 0.5rem;
-}
-
+@media (max-width:900px) { .message-header { flex-direction:column; align-items:stretch; } }

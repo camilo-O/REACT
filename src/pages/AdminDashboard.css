@@ -1,0 +1,35 @@
+.admin-dashboard { padding: 18px; font-family: "Inter", sans-serif; color:#0b1d4a; }
+
+.adm-header { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:18px; }
+.adm-title { margin:0; font-size:1.4rem; }
+.adm-sub { margin:0; color:#6b7280; font-size:0.95rem; }
+
+.adm-actions { display:flex; gap:8px; }
+.btn { background: linear-gradient(180deg,#0d335b,#134a84); color:#fff; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; }
+.btn.ghost { background: transparent; color:#0b1d4a; border:1px solid #e6eef9; }
+
+.stats-row { display:grid; grid-template-columns: repeat(auto-fit,minmax(160px,1fr)); gap:12px; margin-bottom:16px; }
+.stat-card { background:#fff; border:1px solid #eef6ff; border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:6px; align-items:flex-start; box-shadow:0 6px 18px rgba(10,25,55,0.03); }
+.stat-num { font-size:1.6rem; font-weight:700; color:#06203d; }
+.stat-label { color:#6b7280; font-size:0.95rem; }
+
+.main-grid { display:grid; grid-template-columns: 1fr 320px; gap:12px; align-items:start; }
+
+.panel { background:#fff; border:1px solid #e6eef9; padding:12px; border-radius:12px; box-shadow:0 1px 6px rgba(2,6,23,0.03); }
+.recent-list { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px; }
+.recent-item { display:flex; justify-content:space-between; gap:12px; padding:8px; border-radius:8px; border:1px solid #f3f6fb; align-items:flex-start; }
+.ri-left .ri-title { display:block; color:#06203d; font-weight:700; }
+.ri-meta { color:#6b7280; font-size:0.85rem; margin-top:4px; }
+.ri-desc { margin-top:6px; color:#374151; font-size:0.95rem; }
+.ri-badge { background:#eef2ff; color:#0d3b6b; padding:6px 8px; border-radius:999px; font-weight:700; font-size:0.85rem; }
+
+.summary .summary-grid { display:grid; grid-template-columns: repeat(1,1fr); gap:8px; }
+.summary .item { display:flex; flex-direction:column; gap:4px; }
+.summary .strong { font-size:1.25rem; font-weight:700; color:#06203d; }
+.empty { padding:14px; text-align:center; color:#6b7280; border-radius:8px; background:#fff; border:1px dashed #e6eef9; }
+
+/* Responsive */
+@media (max-width: 980px) {
+  .main-grid { grid-template-columns: 1fr; }
+  .adm-actions { flex-wrap:wrap; }
+}

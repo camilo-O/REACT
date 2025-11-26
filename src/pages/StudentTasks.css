@@ -1,156 +1,61 @@
-/* ============================
-   Mis Tareas - Estudiante
-   ============================ */
-.student-tasks {
-  background-color: #f8fafc;
-  padding: 2rem;
-  min-height: 100vh;
-  font-family: "Inter", sans-serif;
+.student-tasks.page-root { padding:18px; font-family: "Inter", sans-serif; color:#0b1d4a; max-width:1100px; margin:0 auto; }
+.st-header { display:flex; justify-content:space-between; align-items:start; gap:12px; margin-bottom:12px; }
+.st-header h2 { margin:0; font-size:1.25rem; }
+.muted { margin:0; color:#6b7280; }
+
+.st-filters { display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap; }
+.st-filters select, .st-filters .btn { padding:8px 10px; border-radius:8px; border:1px solid #e5e7eb; background:#fff; }
+.btn.small { padding:8px 10px; background: linear-gradient(180deg,#0d335b,#134a84); color:#fff; border:none; cursor:pointer; border-radius:8px; }
+.btn.ghost { background:transparent; border:1px solid #e6eef9; color:#0b1d4a; }
+
+.st-list { display:flex; flex-direction:column; gap:10px; }
+.st-card { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; padding:12px; border-radius:10px; background:#fff; border:1px solid #eef6ff; box-shadow:0 6px 18px rgba(10,25,55,0.03); }
+.st-left { flex:1; }
+.st-title { font-weight:700; color:#06203d; }
+.st-meta { color:#6b7280; font-size:0.9rem; margin-top:6px; }
+.st-desc { margin-top:8px; color:#374151; }
+
+.st-actions { display:flex; flex-direction:column; gap:8px; align-items:flex-end; min-width:120px; }
+.badge { padding:6px 8px; border-radius:999px; font-weight:700; font-size:0.85rem; }
+.badge.done { background:#ecfdf5; color:#065f46; }
+.badge.pending { background:#fffbeb; color:#92400e; }
+
+.empty { padding:14px; text-align:center; color:#6b7280; border-radius:8px; background:#fff; border:1px dashed #e6eef9; }
+.st-loading, .st-error { padding:12px; text-align:center; margin-bottom:10px; }
+.st-error { background:#fff1f2; color:#9f1239; border-radius:8px; }
+
+@media (max-width: 900px) {
+  .st-card { flex-direction:column; align-items:stretch; }
+  .st-actions { align-items:flex-start; }
 }
 
-/* Título principal */
-.student-tasks .title {
+/* Modal detalles tarea */
+.st-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(2,6,23,0.5);
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #1e3a8a; /* azul institucional */
-  margin-bottom: 1.5rem;
+  justify-content: center;
+  z-index: 1300;
 }
-
-.icon {
-  color: #2563eb;
+.st-modal {
+  width: 920px;
+  max-width: 95%;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 12px 40px rgba(2,6,23,0.3);
+  overflow: hidden;
 }
-
-/* ============================
-   Tarjetas de tareas
-   ============================ */
-.tasks-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 1.2rem;
+.st-modal-header {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:12px 16px;
+  border-bottom:1px solid #eef6ff;
 }
-
-.task-card {
-  background: #ffffff;
-  border-radius: 1rem;
-  padding: 1.2rem 1.4rem;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-  border-left: 5px solid #2563eb;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.task-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.08);
-}
-
-/* Encabezado */
-.task-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.4rem;
-}
-
-.task-header h3 {
-  font-size: 1.1rem;
-  color: #1e293b;
-  font-weight: 600;
-  margin: 0;
-}
-
-/* Estado de tarea */
-.status {
-  font-size: 0.8rem;
-  font-weight: 600;
-  padding: 0.3rem 0.6rem;
-  border-radius: 0.4rem;
-  color: #fff;
-  text-transform: capitalize;
-}
-
-.status.completada {
-  background-color: #16a34a;
-}
-
-.status.pendiente {
-  background-color: #eab308;
-}
-
-.status.en-curso,
-.status.in-progress {
-  background-color: #2563eb;
-}
-
-/* Detalles */
-.subject {
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: #2563eb;
-  margin-bottom: 0.2rem;
-}
-
-.desc {
-  font-size: 0.85rem;
-  color: #475569;
-  margin-bottom: 0.8rem;
-}
-
-/* Footer */
-.task-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.85rem;
-  color: #6b7280;
-}
-
-.pending-icon {
-  color: #eab308;
-}
-
-.done-icon {
-  color: #16a34a;
-}
-
-/* Colores laterales según estado */
-.task-card.pending {
-  border-left-color: #eab308;
-}
-
-.task-card.completed {
-  border-left-color: #16a34a;
-}
-
-.task-card.in-progress {
-  border-left-color: #2563eb;
-}
-
-/* Textos de carga o vacío */
-.loading,
-.no-tasks {
-  color: #6b7280;
-  font-size: 1rem;
-  margin-top: 1rem;
-  text-align: center;
-}
-
-/* ============================
-   Responsividad
-   ============================ */
-@media (max-width: 640px) {
-  .tasks-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .task-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.3rem;
-  }
-}
+.st-modal-body { padding:14px 16px; max-height:70vh; overflow:auto; }
+.st-modal-footer { padding:12px 16px; border-top:1px solid #eef6ff; text-align:right; }
+.st-row { margin:8px 0; color:#0b1d4a; }
+.st-entrega { background:#fff; border:1px solid #f3f6fb; padding:10px; border-radius:8px; }
+.st-entrega a { color:#0d47a1; text-decoration:underline; }

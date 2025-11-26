@@ -89,15 +89,29 @@ export async function apiEditarCurso(id, payload) {
 export async function apiEliminarCurso(id) {
   return request(`/cursos/${id}`, { method:'DELETE' });
 }
-export async function apiMatricularEstudiante(cursoId, estudiante_id) {
-  return request(`/cursos/${cursoId}/matricular`, { method:'POST', body:{ estudiante_id } });
+export async function apiMatricularEstudiante(cursoId, estudianteOrNumero) {
+  const body =
+    typeof estudianteOrNumero === "number"
+      ? { estudiante_id: Number(estudianteOrNumero) }
+      : { numero_identificacion: String(estudianteOrNumero).trim() };
+  return request(`/cursos/${cursoId}/matricular`, { method: 'POST', body });
 }
+export async function apiDesmatricularEstudiante(cursoId, estudianteOrNumero) {
+  const body =
+    typeof estudianteOrNumero === "number"
+      ? { estudiante_id: Number(estudianteOrNumero) }
+      : { numero_identificacion: String(estudianteOrNumero).trim() };
+  return request(`/cursos/${cursoId}/desmatricular`, { method: 'POST', body });
+}
+
 export async function apiGenerarCodigoCurso(cursoId) {
   return request(`/cursos/${cursoId}/generar-codigo`, { method:'POST' });
 }
 export async function apiUnirseCurso(code) {
   return request('/cursos/unirse', { method:'POST', body:{ code } });
 }
+
+
 
 // Tareas
 export async function apiCrearTarea(payload) {
@@ -114,8 +128,19 @@ export async function apiTareasEstudiante(id, materia_id) {
   const q = materia_id !== undefined ? `?materia_id=${materia_id}` : '';
   return request(`/tareas/estudiante/${id}${q}`);
 }
-export async function apiEntregarTarea(payload) {
-  return request('/tareas/entregar', { method:'POST', body: payload });
+export async function apiEntregarTarea(payload, file) {
+  const url = `${API_URL}/tareas/entregar`;
+  const fd = new FormData();
+  if (payload && payload.tarea_id) fd.append("tarea_id", String(payload.tarea_id));
+  if (payload && payload.comentario) fd.append("comentario", String(payload.comentario));
+  if (file) fd.append("archivo", file, file.name);
+  const headers = {};
+  const token = getToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const res = await fetch(url, { method: "POST", headers, body: fd });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json?.error || json?.message || "Error en apiEntregarTarea");
+  return json;
 }
 export async function apiActualizarEntrega(entregaId, payload) {
   return request(`/tareas/entrega/${entregaId}`, { method:'PUT', body: payload });
@@ -123,9 +148,28 @@ export async function apiActualizarEntrega(entregaId, payload) {
 export async function apiMisEntregas() {
   return request('/tareas/mis-entregas');
 }
+
+export async function apiMiEntregaDeTarea(tareaId) {
+  const list = await request('/tareas/mis-entregas');
+  if (!Array.isArray(list)) return null;
+  return list.find(e =>
+    Number(e.tarea_id) === Number(tareaId) ||
+    Number(e.tareaId) === Number(tareaId) ||
+    Number(e.tarea) === Number(tareaId) ||
+    Number(e.tarea?.id) === Number(tareaId) ||
+    Number(e.Tarea?.id) === Number(tareaId)
+  ) || null;
+}
+
 export async function apiEntregasDeTarea(tareaId) {
   return request(`/tareas/tarea/${tareaId}/entregas`);
 }
+
+export async function apiCalificarEntrega(entregaId, payload) {
+  return request(`/tareas/entrega/${entregaId}/calificar`, { method: 'POST', body: payload });
+}
+
+
 
 // Asistencia
 export async function apiTomarAsistencia(payload) {
@@ -158,8 +202,17 @@ export async function apiResumenHoy() {
   return request('/asistencia/resumen/hoy');
 }
 export async function apiLlamadoLista(params) {
+  const q = params ? `?${new URLSearchParams(params).toString()}` : '';
+  return request(`/asistencia/llamado${q}`);
+}
+
+export async function apiListMatriculas(params = {}) {
   const q = new URLSearchParams(params).toString();
-  return request(`/asistencia/llamado?${q}`);
+  return request(`/matriculas${q ? `?${q}` : ''}`);
+}
+
+export async function apiUpdateMatricula(id, payload) {
+  return request(`/matriculas/${id}`, { method: 'PUT', body: payload });
 }
 
 // Reportes
@@ -191,6 +244,14 @@ export async function apiCrearInvitacionPadre(payload) {
 }
 export async function apiAceptarInvitacionPadre(payload) {
   return request('/padres/aceptar', { method:'POST', body: payload, auth:false });
+}
+
+export async function apiAsignarPadre(payload) {
+  return request('/padres/asignar', { method: 'POST', body: payload });
+}
+
+export async function apiEnviarCitacion(payload) {
+  return request('/citaciones', { method: 'POST', body: payload });
 }
 
 // Eventos / calendario
@@ -228,8 +289,38 @@ export async function apiListProfesores(params = {}) {
   const q = new URLSearchParams({ rol: 'profesor', ...params }).toString();
   return request(`/auth/admin/usuarios?${q}`);
 }
-export async function apiSolicitarJustificacion(payload) {
-  return request('/asistencia/solicitar', { method: 'POST', body: payload });
+
+export async function apiListCitaciones() {
+  return request('/citaciones');
+}
+
+export async function apiListComunicaciones() {
+  return request('/comunicaciones');
+}
+
+export async function apiEnviarComunicacion(payload) {
+  return request('/comunicaciones/enviar', { method: 'POST', body: payload });
+}
+
+export async function apiSolicitarJustificacion(payload, file) {
+  if (!file) return request('/asistencia/solicitar', { method: 'POST', body: payload });
+
+  const url = `${API_URL}/asistencia/solicitar`;
+  const fd = new FormData();
+  if (payload) {
+    Object.keys(payload).forEach(k => {
+      if (payload[k] !== undefined && payload[k] !== null) fd.append(k, String(payload[k]));
+    });
+  }
+  fd.append('archivo_justificacion', file, file.name);
+
+  const headers = {};
+  const token = getToken();
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const res = await fetch(url, { method: 'POST', headers, body: fd });
+  const json = await res.json().catch(()=>null);
+  if (!res.ok) throw new Error(json?.error || json?.message || `HTTP ${res.status}`);
+  return json;
 }
 
 export async function apiHorarioEstudiante(estudianteId) {
@@ -238,3 +329,24 @@ export async function apiHorarioEstudiante(estudianteId) {
 export async function apiHorarioCurso(cursoId) {
   return request(`/horario/curso/${cursoId}`);
 }
+
+export async function apiMiHorario() {
+  return request('/horario/mi');
+}
+export async function apiListHorarioProfesor(profesorId) {
+  return request(`/horario/profesor/${profesorId}`);
+}
+export async function apiCrearHorario(payload) {
+  return request('/horario', { method: 'POST', body: payload });
+}
+export async function apiEditarHorario(id, payload) {
+  return request(`/horario/${id}`, { method: 'PUT', body: payload });
+}
+export async function apiEliminarHorario(id) {
+  return request(`/horario/${id}`, { method: 'DELETE' });
+}
+
+export async function apiAdminUpdateUser(id, payload) {
+  return request(`/auth/admin/usuarios/${id}`, { method: 'PUT', body: payload });
+}
+

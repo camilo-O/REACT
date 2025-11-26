@@ -1,0 +1,31 @@
+.student-excuses, .student-excuses .panel-root { padding: 18px; font-family: "Inter", sans-serif; color:#0b1d4a; max-width:900px; margin:0 auto; }
+.se-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+.se-header h2 { margin:0; font-size:1.25rem; }
+.muted { margin:0; color:#6b7280; }
+
+.se-form { background:#fff; padding:14px; border-radius:10px; border:1px solid #eef6ff; box-shadow:0 6px 18px rgba(10,25,55,0.03); display:flex; flex-direction:column; gap:10px; }
+.form-row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+.form-row label { min-width:90px; font-weight:600; color:#0b1d4a; }
+.se-form label { font-weight:600; color:#0b1d4a; }
+
+.se-form select, .se-form input, .se-form textarea { padding:8px 10px; border-radius:8px; border:1px solid #e5e7eb; background:#fff; width:100%; box-sizing:border-box; }
+
+.se-footer { display:flex; gap:8px; margin-top:6px; }
+.se-footer button { padding:8px 12px; border-radius:8px; border:none; cursor:pointer; background: linear-gradient(180deg,#0d335b,#134a84); color:#fff; }
+.se-footer .btn-ghost { background:transparent; border:1px solid #e6eef9; color:#0b1d4a; }
+
+.record-box { margin-top:12px; padding:10px; border-radius:8px; border:1px solid #f3f6fb; background:#fff; color:#0b1d4a; }
+.badge { padding:6px 8px; border-radius:999px; font-weight:700; text-transform:capitalize; }
+.badge.presente { background:#ecfdf5; color:#065f46; }
+.badge.ausente { background:#fff1f2; color:#9f1239; }
+.badge.tardanza { background:#fffbeb; color:#92400e; }
+.badge.justificado { background:#ecfdf5; color:#065f46; }
+
+.feedback { margin-top:10px; padding:8px 10px; border-radius:8px; font-weight:600; }
+.feedback.success { background:#ecfdf5; color:#065f46; }
+.feedback.error { background:#fff1f2; color:#9f1239; }
+.feedback.info { background:#eef2ff; color:#0f172a; }
+
+@media (max-width:720px) {
+  .form-row { flex-direction:column; align-items:stretch; }
+}

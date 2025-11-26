@@ -30,6 +30,7 @@ export default function TeacherLayout() {
     { name: "Asistencia", icon: <CheckSquare size={18} />, path: "/teacher/attendance" },
     { name: "Enviar Citas", icon: <Megaphone size={18} />, path: "/teacher/appointments" },
     { name: "Comunicación", icon: <MessageSquare size={18} />, path: "/teacher/comms" },
+     { name: "Eventos", icon: <Calendar size={18} />, path: "/teacher/events" }
   ];
 
   const teacher = {

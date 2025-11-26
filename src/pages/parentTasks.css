@@ -1,87 +1,29 @@
-/* --- Contenedor principal --- */
-.parent-tasks {
-  width: 100%;
-  margin: 0;
-  padding: 0 1.5rem; /* 🔹 Alinea con el dashboard */
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-}
+.parent-tasks { padding:18px; max-width:1100px; margin:0 auto; font-family: Inter, system-ui, sans-serif; color:#0b1d4a; }
+.pt-header { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px; }
+.pt-header h2 { margin:0; font-size:1.25rem; }
+.muted { margin:0; color:#6b7280; }
 
-/* --- Encabezado --- */
-.page-title {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: #1e3a8a;
-  margin-bottom: 0.2rem;
-}
+.pt-controls { display:flex; gap:8px; align-items:center; }
+.pt-controls select, .pt-controls .btn { padding:8px 10px; border-radius:8px; border:1px solid #e5e7eb; background:#fff; }
+.btn { background: linear-gradient(180deg,#0d335b,#134a84); color:#fff; border:none; padding:8px 10px; border-radius:8px; cursor:pointer; }
 
-.page-subtitle {
-  font-size: 1rem;
-  color: #6b7280;
-  margin-bottom: 1.5rem;
-}
+.tasks-table-wrap { overflow:auto; border-radius:8px; border:1px solid #eef6ff; background:#fff; padding:8px; }
+.tasks-table { width:100%; border-collapse:collapse; }
+.tasks-table th, .tasks-table td { padding:10px 12px; border-bottom:1px solid #f3f6fb; text-align:left; vertical-align:middle; }
+.tasks-table th { background:#f8fafc; font-weight:600; position:sticky; top:0; z-index:1; }
 
-/* --- Tabla de tareas --- */
-.tasks-table {
-  background: white;
-  border-radius: 1rem;
-  box-shadow: 0 1px 4px rgb(0 0 0 / 0.06);
-  padding: 1.5rem;
-  overflow-x: auto;
-}
+.title-cell { font-weight:700; color:#06203d; }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-  min-width: 600px; /* 🔹 evita que se deforme en pantallas pequeñas */
-}
+.empty { padding:14px; text-align:center; color:#6b7280; border-radius:8px; background:#fff; border:1px dashed #e6eef9; margin-top:8px; }
+.error { background:#fff1f2; color:#9f1239; padding:10px; border-radius:8px; margin-top:8px; }
 
-thead {
-  background-color: #f3f4f6;
-  border-radius: 0.5rem;
-}
+.status { padding:6px 8px; border-radius:999px; font-weight:700; text-transform:capitalize; font-size:0.85rem; }
+.status.done { background:#ecfdf5; color:#065f46; }
+.status.pending { background:#fffbeb; color:#92400e; }
 
-th {
-  text-align: left;
-  padding: 0.75rem 1rem;
-  color: #374151;
-  font-weight: 600;
-  font-size: 0.95rem;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-td {
-  padding: 0.85rem 1rem;
-  color: #111827;
-  font-size: 0.95rem;
-  border-bottom: 1px solid #f3f4f6;
-}
-
-/* --- Estados de tareas --- */
-.status-badge {
-  display: inline-block;
-  font-size: 0.85rem;
-  font-weight: 600;
-  border-radius: 9999px;
-  padding: 0.3rem 0.75rem;
-  color: white;
-}
-
-.status-pending {
-  background-color: #f59e0b;
-}
-
-.status-progress {
-  background-color: #2563eb;
-}
-
-.status-done {
-  background-color: #16a34a;
-}
-
-/* --- Hover filas --- */
-tbody tr:hover {
-  background-color: #f9fafb;
-  transition: background 0.2s ease;
+/* responsive */
+@media (max-width:900px) {
+  .pt-header { flex-direction:column; align-items:stretch; }
+  .pt-controls { justify-content:flex-start; }
+  .tasks-table th:nth-child(3), .tasks-table td:nth-child(3) { display:none; } /* ocultar columna curso en móvil */
 }

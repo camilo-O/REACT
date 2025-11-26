@@ -1,140 +1,112 @@
-import React, { useState } from "react";
+import { apiEnviarCitacion, apiListCursos } from "../config/api";
+import React, { useEffect, useState } from "react";
 import "./TeacherAppointments.css";
 
 export default function TeacherAppointments() {
   const [recipientType, setRecipientType] = useState("curso");
   const [course, setCourse] = useState("");
-  const [studentName, setStudentName] = useState("");
-  const [studentGrade, setStudentGrade] = useState("");
-  const [parentName, setParentName] = useState("");
-  const [parentStudent, setParentStudent] = useState("");
-  const [parentGrade, setParentGrade] = useState("");
+  const [courses, setCourses] = useState([]);
+  // renombrado para dejar claro que es número de identificación
+  const [studentIdentificacion, setStudentIdentificacion] = useState("");
+  const [parentId, setParentId] = useState("");
   const [message, setMessage] = useState("");
+  const [fecha, setFecha] = useState("");
+  const [hora, setHora] = useState("");
   const [success, setSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  useEffect(() => {
+    apiListCursos().then(c => setCourses(Array.isArray(c) ? c : [])).catch(()=>setCourses([]));
+  }, []);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setSuccess(true);
-    setTimeout(() => setSuccess(false), 4000);
+    if (!message.trim()) return alert("Escribe el mensaje de la citación");
+    const payload = { recipientType: recipientType, message: message.trim(), fecha: fecha || null, hora: hora || null, location: null };
+
+    if (recipientType === "curso") {
+      if (!course) return alert("Selecciona un curso");
+      payload.curso_id = Number(course);
+    }
+
+    if (recipientType === "estudiante") {
+      // aceptar número de identificación o id numérico
+      if (!studentIdentificacion) return alert("Proporciona número de identificación del estudiante");
+      // si el usuario escribe un número que es id real, backend acepta también estudiante_id, pero preferimos enviar numero_identificacion
+      payload.estudiante_numero_identificacion = String(studentIdentificacion).trim();
+    }
+
+    if (recipientType === "padre") {
+      if (parentId) {
+        payload.parent_id = Number(parentId);
+      } else if (studentIdentificacion) {
+        // buscar padres por numero_identificacion del estudiante
+        payload.estudiante_numero_identificacion = String(studentIdentificacion).trim();
+      } else {
+        return alert("Proporciona parent_id o número de identificación del estudiante para enviar al padre");
+      }
+    }
+
+    try {
+      setLoading(true);
+      await apiEnviarCitacion(payload);
+      setSuccess(true);
+      setTimeout(()=>setSuccess(false), 4000);
+      setMessage("");
+      setStudentIdentificacion("");
+      setParentId("");
+    } catch (err) {
+      alert(err.message || "Error enviando citación");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="appointments-container">
       <h2>Enviar Citaciones</h2>
-      <p className="subtitle">
-        Envía citaciones a un curso completo, a un estudiante o a un padre de familia.
-      </p>
+      <p className="subtitle">Envía citaciones a un curso, a un estudiante (por número identificación) o a un padre.</p>
 
       <form className="appointment-form" onSubmit={handleSubmit}>
-        {/* Tipo de destinatario */}
         <label>Tipo de destinatario:</label>
-        <select
-          value={recipientType}
-          onChange={(e) => setRecipientType(e.target.value)}
-        >
+        <select value={recipientType} onChange={(e) => setRecipientType(e.target.value)}>
           <option value="curso">Curso completo</option>
           <option value="estudiante">Estudiante</option>
-          <option value="padre">Padre de familia</option>
+          <option value="padre">Padre</option>
         </select>
 
-        {/* Curso */}
         {recipientType === "curso" && (
           <>
             <label>Curso:</label>
             <select value={course} onChange={(e) => setCourse(e.target.value)} required>
               <option value="">Selecciona un curso</option>
-              <option value="6A">6°A</option>
-              <option value="7B">7°B</option>
-              <option value="8A">8°A</option>
-              <option value="9B">9°B</option>
+              {courses.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
             </select>
           </>
         )}
 
-        {/* Estudiante */}
-        {recipientType === "estudiante" && (
+        {(recipientType === "estudiante" || recipientType === "padre") && (
           <>
-            <label>Nombre del estudiante:</label>
-            <input
-              type="text"
-              placeholder="Nombre completo del estudiante"
-              value={studentName}
-              onChange={(e) => setStudentName(e.target.value)}
-              required
-            />
-
-            <label>Grado / Curso:</label>
-            <select
-              value={studentGrade}
-              onChange={(e) => setStudentGrade(e.target.value)}
-              required
-            >
-              <option value="">Selecciona el grado</option>
-              <option value="6A">6°A</option>
-              <option value="7A">7°A</option>
-              <option value="8A">8°A</option>
-              <option value="9B">9°B</option>
-            </select>
+            <label>Número de identificación del estudiante:</label>
+            <input type="text" value={studentIdentificacion} onChange={e => setStudentIdentificacion(e.target.value)} placeholder="Ej: 1023456789" />
+            <label>Padre (ID) — opcional:</label>
+            <input type="number" value={parentId} onChange={e => setParentId(e.target.value)} placeholder="ID padre (opcional)" />
           </>
         )}
 
-        {/* Padre */}
-        {recipientType === "padre" && (
-          <>
-            <label>Nombre del padre o madre:</label>
-            <input
-              type="text"
-              placeholder="Nombre completo del acudiente"
-              value={parentName}
-              onChange={(e) => setParentName(e.target.value)}
-              required
-            />
+        <label>Fecha (opcional)</label>
+        <input type="date" value={fecha} onChange={e=>setFecha(e.target.value)} />
 
-            <label>Estudiante asociado:</label>
-            <input
-              type="text"
-              placeholder="Nombre completo del estudiante"
-              value={parentStudent}
-              onChange={(e) => setParentStudent(e.target.value)}
-              required
-            />
+        <label>Hora (opcional)</label>
+        <input type="time" value={hora} onChange={e=>setHora(e.target.value)} />
 
-            <label>Grado / Curso del estudiante:</label>
-            <select
-              value={parentGrade}
-              onChange={(e) => setParentGrade(e.target.value)}
-              required
-            >
-              <option value="">Selecciona el grado</option>
-              <option value="6A">6°A</option>
-              <option value="7A">7°A</option>
-              <option value="8A">8°A</option>
-              <option value="9B">9°B</option>
-            </select>
-          </>
-        )}
-
-        {/* Mensaje */}
         <label>Mensaje de citación:</label>
-        <textarea
-          placeholder="Escribe el motivo o mensaje de la citación..."
-          rows="4"
-          value={message}
-          onChange={(e) => setMessage(e.target.value)}
-          required
-        />
+        <textarea rows="4" placeholder="Escribe el motivo o mensaje..." value={message} onChange={(e) => setMessage(e.target.value)} required />
 
-        <button type="submit" className="send-btn">
-          ✉️ Enviar Citación
-        </button>
+        <button type="submit" className="send-btn" disabled={loading}>✉️ Enviar Citación</button>
 
-        {success && (
-          <div className="success-message">
-            ✅ Citación enviada correctamente.
-          </div>
-        )}
+        {success && <div className="success-message">✅ Citación enviada correctamente.</div>}
       </form>
     </div>
   );
 }
-

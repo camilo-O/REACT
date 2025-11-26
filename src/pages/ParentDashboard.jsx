@@ -1,92 +1,162 @@
-import React from "react";
+/* eslint-disable no-unused-vars */
+import React, { useEffect, useState, useContext } from "react";
 import "./ParentDashboard.css";
+import { AuthContext } from "../context/AuthContext";
+import { apiListMatriculas, apiTareasEstudiante, apiHistorialAsistencia, apiListEventos } from "../config/api";
 
 export default function ParentDashboard() {
-  const data = {
-    student: "Carlos González",
-    tasksAssigned: 8,
-    tasksCompleted: 5,
-    tasksPending: 3,
-    attendance: 92,
-  };
+  const { user, loading: authLoading } = useContext(AuthContext);
+  const [children, setChildren] = useState([]);
+  const [selectedChildId, setSelectedChildId] = useState(null);
+  const [tareas, setTareas] = useState([]);
+  const [asistencia, setAsistencia] = useState(null);
+  const [eventos, setEventos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const recentActivities = [
-    {
-      id: 1,
-      title: "Nueva tarea de Matemáticas",
-      detail: "Tapa 5 Álgebra: pág. 45 (vence mañana)",
-      teacher: "Profesor Carlos",
-      date: "07 Oct 2025",
-    },
-    {
-      id: 2,
-      title: "Excusa médica aprobada",
-      detail: "Reposo de 2 días por fiebre alta.",
-      teacher: "Coordinación Académica",
-      date: "06 Oct 2025",
-    },
-    {
-      id: 3,
-      title: "Cita confirmada",
-      detail: "Reunión con el profesor de Lengua Castellana",
-      teacher: "Prof. Ana Gómez",
-      date: "05 Oct 2025",
-    },
-  ];
+  useEffect(() => {
+    async function loadChildren() {
+      setLoading(true);
+      try {
+        // la ruta /matriculas devolverá las matrículas del/los hijos para rol 'padre'
+        const mats = await apiListMatriculas().catch(() => []);
+        // normalizar lista de estudiantes desde matriculas
+        const kidsMap = new Map();
+        (Array.isArray(mats) ? mats : []).forEach(m => {
+          const est = m.estudiante || (m.estudiante_id ? { id: m.estudiante_id, nombre: m.estudiante_nombre } : null);
+          if (est && est.id) {
+            if (!kidsMap.has(est.id)) kidsMap.set(est.id, { id: est.id, nombre: `${est.nombre || ''} ${est.apellido1 || ''}`.trim() || `Alumno ${est.id}` });
+          }
+        });
+        const kids = Array.from(kidsMap.values());
+        setChildren(kids);
+        if (kids.length > 0) setSelectedChildId(kids[0].id);
+      } catch (e) {
+        console.error("loadChildren:", e);
+        setError("No se pudieron cargar los hijos.");
+        setChildren([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+    if (!authLoading) loadChildren();
+  }, [authLoading]);
+
+  useEffect(() => {
+    if (!selectedChildId) return;
+    let mounted = true;
+    async function loadChildData() {
+      setLoading(true);
+      setError(null);
+      try {
+        const [tareasRes, hist, evs] = await Promise.all([
+          apiTareasEstudiante(selectedChildId).catch(() => []),
+          apiHistorialAsistencia(selectedChildId).catch(() => null),
+          apiListEventos().catch(() => [])
+        ]);
+        if (!mounted) return;
+        setTareas(Array.isArray(tareasRes) ? tareasRes : (tareasRes?.tareas || []));
+        setAsistencia(hist?.estadisticas || hist || null);
+        // filtrar eventos relevantes (opcional)
+        setEventos((evs || []).slice(0,6));
+      } catch (e) {
+        console.error("loadChildData:", e);
+        if (mounted) setError("Error cargando datos del estudiante");
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    }
+    loadChildData();
+    return () => { mounted = false; };
+  }, [selectedChildId]);
+
+  // métricas simples
+  const tareasTotales = tareas.length;
+  const tareasEntregadas = tareas.filter(t => Array.isArray(t.entregas) && t.entregas.length > 0).length;
+  const tareasPendientes = tareasTotales - tareasEntregadas;
+  const asistenciaPct = asistencia ? (Number(asistencia.porcentaje_asistencia) || 0) : null;
 
   return (
     <div className="parent-dashboard">
-      <h1 className="page-title">Panel del Padre de Familia</h1>
-      <p className="page-subtitle">
-        Seguimiento académico de <strong>{data.student}</strong>
-      </p>
+      <h1 className="page-title">Panel del Padre</h1>
+      <p className="page-subtitle">Seguimiento de tus hijos</p>
 
-      {/* Resumen general */}
-      <div className="summary-grid">
-        <div className="summary-card">
-          <h3>Tareas Asignadas</h3>
-          <p className="value">{data.tasksAssigned}</p>
-          <p className="desc">+2 esta semana</p>
-        </div>
-
-        <div className="summary-card">
-          <h3>Completadas</h3>
-          <p className="value success">{data.tasksCompleted}</p>
-          <p className="desc">{(data.tasksCompleted / data.tasksAssigned * 100).toFixed(1)}% de progreso</p>
-        </div>
-
-        <div className="summary-card">
-          <h3>Pendientes</h3>
-          <p className="value warning">{data.tasksPending}</p>
-          <p className="desc">1 vence pronto</p>
-        </div>
-
-        <div className="summary-card">
-          <h3>Asistencia</h3>
-          <p className="value success">{data.attendance}%</p>
-          <p className="desc">{data.attendance > 90 ? "Excelente" : "Regular"}</p>
-        </div>
+      <div className="pd-controls">
+        <label>Seleccionar hijo:</label>
+        <select value={selectedChildId || ""} onChange={e => setSelectedChildId(Number(e.target.value))}>
+          <option value="">— Selecciona hijo —</option>
+          {children.map(c => <option key={c.id} value={c.id}>{c.nombre || `Alumno ${c.id}`}</option>)}
+        </select>
+        <button onClick={() => { if (selectedChildId) { setSelectedChildId(selectedChildId); } }} className="btn">Refrescar</button>
       </div>
 
-      {/* Actividades recientes */}
-      <div className="activities-section">
-        <h2>Actividades recientes</h2>
-
-        <div className="activities-list">
-          {recentActivities.map((act) => (
-            <div key={act.id} className="activity-card">
-              <div className="activity-info">
-                <h4>{act.title}</h4>
-                <p>{act.detail}</p>
-                <span className="teacher">{act.teacher}</span>
-              </div>
-              <span className="date">{act.date}</span>
+      {loading ? (
+        <div className="empty">Cargando datos...</div>
+      ) : error ? (
+        <div className="empty error">{error}</div>
+      ) : !selectedChildId ? (
+        <div className="empty">No se detectaron hijos vinculados a tu cuenta.</div>
+      ) : (
+        <>
+          <div className="summary-grid">
+            <div className="summary-card">
+              <h3>Tareas asignadas</h3>
+              <p className="value">{tareasTotales}</p>
+              <p className="desc">Asignadas</p>
             </div>
-          ))}
-        </div>
-      </div>
+            <div className="summary-card">
+              <h3>Completadas</h3>
+              <p className="value success">{tareasEntregadas}</p>
+              <p className="desc">Entregadas</p>
+            </div>
+            <div className="summary-card">
+              <h3>Pendientes</h3>
+              <p className="value warning">{tareasPendientes}</p>
+              <p className="desc">Sin entregar</p>
+            </div>
+            <div className="summary-card">
+              <h3>Asistencia</h3>
+              <p className="value">{asistenciaPct !== null ? `${asistenciaPct}%` : "—"}</p>
+              <p className="desc">Último periodo</p>
+            </div>
+          </div>
+
+          <div className="panels">
+            <section className="panel recent-tasks">
+              <h3>Tareas recientes</h3>
+              {tareas.length === 0 ? <div className="empty">Sin tareas</div> : (
+                <ul>
+                  {tareas.slice(0,6).map(t => (
+                    <li key={t.id} className="task-item">
+                      <div className="task-left">
+                        <strong>{t.titulo}</strong>
+                        <div className="muted small">{t.curso?.nombre || `Curso ${t.curso_id || "—"}` } · Vence: {t.fecha_entrega}</div>
+                      </div>
+                      <div className={`tag ${ (Array.isArray(t.entregas) && t.entregas.length>0) ? 'done':'pending' }`}>
+                        {(Array.isArray(t.entregas) && t.entregas.length>0) ? 'Entregada' : 'Pendiente'}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+
+            <aside className="panel upcoming">
+              <h3>Actividad reciente</h3>
+              {eventos.length === 0 ? <div className="empty">Sin actividad</div> : (
+                <div className="events-list">
+                  {eventos.map(ev => (
+                    <div key={ev.id} className="event">
+                      <div className="ev-title">{ev.titulo}</div>
+                      <div className="muted small">{ev.fecha} {ev.hora_inicio ? `• ${ev.hora_inicio}` : ""}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </aside>
+          </div>
+        </>
+      )}
     </div>
   );
 }
-
-

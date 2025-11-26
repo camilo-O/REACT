@@ -1,0 +1,37 @@
+.admin-users { color:#0b1d4a; font-family: "Inter", sans-serif; }
+.admin-users .header { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px; }
+.admin-users .header h2 { margin:0; font-size:1.25rem; }
+.admin-users .header .subtitle { margin:0; color:#6b7280; font-size:0.95rem; }
+.admin-users .header .actions { display:flex; gap:8px; align-items:center; }
+.admin-users .header input { padding:8px 10px; border-radius:8px; border:1px solid #e5e7eb; min-width:300px; }
+.admin-users .header button { padding:8px 10px; border-radius:8px; background:#0d335b; color:#fff; border:none; cursor:pointer; }
+
+.layout { display:grid; grid-template-columns: 320px 1fr; gap: 14px; align-items:start; }
+.panel { background:#fff; border:1px solid #e6eef9; padding:12px; border-radius:10px; box-shadow:0 1px 4px rgba(2,6,23,0.03); }
+.create-form { display:flex; flex-direction:column; gap:8px; }
+.create-form input, .create-form select { padding:8px 10px; border-radius:8px; border:1px solid #e5e7eb; }
+.create-form button { background:linear-gradient(180deg,#0d335b,#134a84); color:#fff; border:none; padding:8px 10px; border-radius:8px; cursor:pointer; }
+
+.feedback { margin-top:10px; padding:8px; border-radius:8px; font-weight:600; }
+.feedback.success { background:#ecfdf5; color:#065f46; }
+.feedback.error { background:#fff1f2; color:#9f1239; }
+
+.users-table { width:100%; border-collapse:collapse; }
+.users-table th, .users-table td { padding:10px 12px; border-bottom:1px solid #eef2f7; text-align:left; vertical-align:middle; }
+.users-table th { background:#f8fafc; font-weight:600; color:#0b1d4a; }
+.users-table .muted { color:#6b7280; font-size:0.95rem; }
+
+.badge { padding:6px 8px; border-radius:999px; font-size:0.85rem; font-weight:600; display:inline-block; }
+.badge.active { background:#ecfdf5; color:#065f46; }
+.badge.inactive { background:#fff1f2; color:#9f1239; }
+
+.row-actions { display:flex; gap:8px; }
+.row-actions button { padding:6px 8px; border-radius:8px; border:1px solid #e5e7eb; background:transparent; cursor:pointer; }
+
+.empty { text-align:center; color:#6b7280; padding:18px 0; }
+
+/* responsive */
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; }
+  .header .actions input { min-width: 180px; }
+}

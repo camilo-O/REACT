@@ -1,106 +1,46 @@
-.teacher-excuses {
-  padding: 2rem;
-  color: #1f2937;
-}
+.teacher-excuses, .teacher-excuses .panel-root { padding: 18px; font-family: "Inter", sans-serif; color:#0b1d4a; }
+.te-header { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px; }
+.title { margin:0; font-size:1.25rem; }
+.subtitle { margin:0; color:#6b7280; font-size:0.95rem; }
 
-.teacher-excuses .title {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: #1e3a8a;
-}
+.te-actions { display:flex; gap:8px; align-items:center; }
+.btn { padding:8px 12px; border-radius:8px; border:none; cursor:pointer; background: linear-gradient(180deg,#0d335b,#134a84); color:#fff; }
+.btn.ghost { background:transparent; color:#0b1d4a; border:1px solid #e6eef9; }
+.btn.primary { background: linear-gradient(180deg,#0d335b,#1a4f8f); }
 
-.teacher-excuses .subtitle {
-  color: #6b7280;
-  margin-top: 4px;
-  margin-bottom: 1.5rem;
-}
+.te-filters { display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap; }
+.te-filters select, .te-filters input { padding:8px 10px; border-radius:8px; border:1px solid #e5e7eb; background:#fff; }
+.te-filters .spacer { flex:1; min-width:12px; }
 
-/* Tabla */
-.excuses-table {
-  width: 100%;
-  border-collapse: collapse;
-  background: white;
-  border-radius: 0.75rem;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-}
+.feedback { margin-bottom:10px; padding:8px 10px; border-radius:8px; font-weight:600; }
+.feedback.success { background:#ecfdf5; color:#065f46; }
+.feedback.error { background:#fff1f2; color:#9f1239; }
+.feedback.info { background:#eef2ff; color:#0f172a; }
 
-.excuses-table th,
-.excuses-table td {
-  padding: 0.9rem 1rem;
-  text-align: left;
-}
+.table-wrap { overflow:auto; border-radius:8px; border:1px solid #eef6ff; background:#fff; padding:6px; }
+.excuses-table { width:100%; border-collapse:collapse; font-size:0.95rem; }
+.excuses-table th, .excuses-table td { padding:10px 12px; border-bottom:1px solid #f3f6fb; text-align:left; vertical-align:middle; }
+.excuses-table th { background:#f8fafc; font-weight:600; color:#0b1d4a; position:sticky; top:0; z-index:2; }
+.student-cell { display:flex; gap:8px; align-items:center; }
+.avatar { width:36px; height:36px; border-radius:8px; background:linear-gradient(135deg,#0d335b,#134a84); color:#fff; display:grid; place-items:center; font-weight:700; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", monospace; color:#0b1d4a; }
 
-.excuses-table th {
-  background: #f3f4f6;
-  color: #374151;
-  font-weight: 600;
-  border-bottom: 2px solid #e5e7eb;
-}
+.badge { padding:6px 8px; border-radius:999px; font-weight:700; text-transform:capitalize; font-size:0.85rem; }
+.badge.presente { background:#ecfdf5; color:#065f46; }
+.badge.ausente { background:#fff1f2; color:#9f1239; }
+.badge.tardanza { background:#fffbeb; color:#92400e; }
+.badge.justificado { background:#ecfdf5; color:#065f46; }
 
-.excuses-table td {
-  border-bottom: 1px solid #f3f4f6;
-}
+.actions { display:flex; gap:6px; }
+.actions .small { padding:6px 8px; border-radius:8px; border:1px solid #e5e7eb; background:#fff; cursor:pointer; }
+.actions .small.danger { background:#fff5f5; border:1px solid #fee2e2; color:#b91c1c; }
 
-/* Estado */
-.status {
-  padding: 0.4rem 0.8rem;
-  border-radius: 0.5rem;
-  font-weight: 600;
-  font-size: 0.9rem;
-}
+.empty { padding:18px; text-align:center; color:#6b7280; border-radius:8px; background:#fff; border:1px dashed #e6eef9; }
 
-.approved {
-  background: #dcfce7;
-  color: #166534;
-}
+.link { color:#0d47a1; text-decoration:underline; font-weight:600; }
 
-.rejected {
-  background: #fee2e2;
-  color: #991b1b;
+@media (max-width: 900px) {
+  .te-filters { flex-direction:column; align-items:stretch; }
+  .actions { flex-direction:column; }
+  .student-cell .name { font-size:0.95rem; }
 }
-
-.pending {
-  background: #fef9c3;
-  color: #92400e;
-}
-
-/* Botones */
-.action-buttons {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.btn-approve,
-.btn-reject {
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
-  font-weight: 600;
-  cursor: pointer;
-  color: white;
-  transition: background-color 0.2s ease;
-}
-
-.btn-approve {
-  background-color: #15803d;
-}
-
-.btn-reject {
-  background-color: #b91c1c;
-}
-
-.btn-approve:hover {
-  background-color: #166534;
-}
-
-.btn-reject:hover {
-  background-color: #991b1b;
-}
-
-.no-actions {
-  color: #6b7280;
-  font-style: italic;
-  font-size: 0.9rem;
-}
-

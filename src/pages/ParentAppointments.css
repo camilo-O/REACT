@@ -1,113 +1,16 @@
-/* ============================
-   CITAS - PADRE DE FAMILIA
-   Colegio Cooperativo Garzón
-   ============================ */
+.parent-appointments { padding:18px; max-width:1100px; margin:0 auto; font-family: Inter, system-ui, sans-serif; color:#0b1d4a; }
+.page-title { margin:0 0 6px 0; font-size:1.4rem; }
+.page-subtitle { margin:0 0 12px 0; color:#6b7280; }
 
-.parent-appointments {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-}
+.notice-box { background:#fff8eb; border:1px solid #ffedd5; padding:12px; border-radius:10px; margin-bottom:12px; color:#92400e; }
 
-.page-title {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: #0a2e6d;
-  margin-bottom: 0.2rem;
-}
+.appointment-list { margin-top:12px; }
+.appointments-table { width:100%; border-collapse:collapse; background:#fff; border:1px solid #eef6ff; border-radius:8px; overflow:hidden; }
+.appointments-table th, .appointments-table td { padding:10px 12px; border-bottom:1px solid #f3f6fb; text-align:left; vertical-align:middle; }
+.appointments-table th { background:#f8fafc; font-weight:700; position:sticky; top:0; z-index:1; }
+.muted { color:#6b7280; }
+.small { font-size:0.9rem; color:#6b7280; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", monospace; color:#0b1d4a; }
 
-.page-subtitle {
-  font-size: 1rem;
-  color: #475569;
-  margin-bottom: 1.5rem;
-}
-
-/* --- Aviso institucional --- */
-.notice-box {
-  background: #eff6ff;
-  border-left: 6px solid #0a2e6d;
-  border-radius: 10px;
-  padding: 1.25rem 1.5rem;
-  margin-bottom: 1.5rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-}
-
-.notice-box h3 {
-  color: #0a2e6d;
-  font-weight: 700;
-  margin-bottom: 0.5rem;
-}
-
-.notice-box p {
-  color: #1f2937;
-  line-height: 1.5;
-  font-size: 0.95rem;
-}
-
-/* --- Tabla --- */
-.appointment-list {
-  background: white;
-  border-radius: 1rem;
-  box-shadow: 0 1px 4px rgb(0 0 0 / 0.06);
-  padding: 1.5rem 2rem;
-}
-
-.appointment-list h2 {
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: #1f2937;
-  margin-bottom: 1rem;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-th {
-  text-align: left;
-  padding: 0.75rem 1rem;
-  color: #374151;
-  font-weight: 600;
-  background-color: #f3f4f6;
-}
-
-td {
-  padding: 0.8rem 1rem;
-  color: #111827;
-  border-bottom: 1px solid #f3f4f6;
-}
-
-tbody tr:hover {
-  background-color: #f9fafb;
-  transition: background 0.2s ease;
-}
-
-/* --- Estados --- */
-.status-badge {
-  display: inline-block;
-  font-size: 0.8rem;
-  font-weight: 600;
-  border-radius: 9999px;
-  padding: 0.3rem 0.75rem;
-  color: white;
-}
-
-.status-pending {
-  background-color: #f59e0b;
-}
-
-.status-approved {
-  background-color: #16a34a;
-}
-
-.status-rejected {
-  background-color: #dc2626;
-}
-
-/* --- Formulario deshabilitado (oculto) --- */
-.appointment-form {
-  display: none; /* 🔒 ya no se muestra el formulario */
-}
-
-
+.empty { padding:14px; text-align:center; color:#6b7280; border-radius:8px; background:#fff; border:1px dashed #e6eef9; }
+.error { background:#fff1f2; color:#9f1239; padding:10px; border-radius:8px; margin-top:8px; }

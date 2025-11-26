@@ -1,111 +1,42 @@
-.teacher-tasks {
-  padding: 2rem;
-  color: #1f2937;
+.teacher-tasks.page-card { padding: 18px; font-family: "Inter", sans-serif; color:#0b1d4a; }
+.tt-header { display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px; }
+.tt-header h2 { margin:0; font-size:1.25rem; }
+.muted { margin:0; color:#6b7280; font-size:0.95rem; }
+
+.tt-actions { display:flex; gap:8px; align-items:center; }
+.tt-actions select, .tt-actions button { padding:8px 10px; border-radius:8px; border:1px solid #e5e7eb; background:#fff; }
+.btn { background: linear-gradient(180deg,#0d335b,#134a84); color:#fff; border:none; padding:8px 10px; border-radius:8px; cursor:pointer; }
+.btn.ghost { background:transparent; color:#0b1d4a; border:1px solid #e6eef9; }
+.btn[disabled] { opacity:0.6; cursor:not-allowed; }
+
+.tt-form { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:14px; background:#fff; padding:12px; border-radius:10px; border:1px solid #eef6ff; }
+.tt-form input, .tt-form select { padding:8px 10px; border-radius:8px; border:1px solid #e5e7eb; background:#fff; min-width:150px; }
+.btn.primary { background: linear-gradient(180deg,#0d335b,#1a4f8f); }
+
+.tt-content { display:grid; grid-template-columns: 1fr 360px; gap:12px; align-items:start; margin-top:8px; }
+.panel { background:#fff; border:1px solid #e6eef9; padding:12px; border-radius:10px; box-shadow:0 1px 6px rgba(2,6,23,0.03); }
+
+.tarea-list { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:8px; }
+.tarea-item { display:flex; justify-content:space-between; align-items:center; padding:10px; border-radius:8px; border:1px solid #f3f6fb; background:#fff; }
+.tarea-title { font-weight:700; color:#06203d; }
+.tarea-meta { color:#6b7280; font-size:0.9rem; margin-top:4px; }
+
+.entregas-list { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:8px; }
+.entrega-item { display:flex; justify-content:space-between; gap:12px; align-items:center; padding:8px; border-radius:8px; border:1px solid #f3f6fb; }
+.entrega-links a { margin-left:8px; color:#0d47a1; text-decoration:underline; font-weight:600; }
+
+.empty { padding:14px; text-align:center; color:#6b7280; border-radius:8px; background:#fff; border:1px dashed #e6eef9; }
+.error { color:#9f1239; font-weight:600; padding-top:8px; }
+
+/* responsive */
+@media (max-width: 980px) {
+  .tt-content { grid-template-columns: 1fr; }
+  .tt-form { flex-direction:column; align-items:stretch; }
 }
 
-.teacher-tasks .title {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: #1e3a8a;
+.preview-modal {
+  position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+  background:rgba(2,6,23,0.6); z-index:1200;
 }
-
-.teacher-tasks .subtitle {
-  color: #6b7280;
-  margin-top: 4px;
-  margin-bottom: 1.5rem;
-}
-
-.actions {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 1rem;
-}
-
-.add-btn {
-  background-color: #1e40af;
-  color: white;
-  border: none;
-  padding: 0.6rem 1.2rem;
-  border-radius: 0.5rem;
-  cursor: pointer;
-  font-weight: 600;
-  transition: background-color 0.2s ease;
-}
-
-.add-btn:hover {
-  background-color: #1d4ed8;
-}
-
-.tasks-table {
-  background: white;
-  border-radius: 1rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  overflow: hidden;
-}
-
-.tasks-table table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.tasks-table th {
-  background: #f3f4f6;
-  text-align: left;
-  padding: 0.75rem 1rem;
-  color: #374151;
-  font-weight: 600;
-}
-
-.tasks-table td {
-  padding: 0.75rem 1rem;
-  border-top: 1px solid #e5e7eb;
-}
-
-.status {
-  padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: white;
-}
-
-.status-green {
-  background-color: #16a34a;
-}
-
-.status-blue {
-  background-color: #2563eb;
-}
-
-.status-yellow {
-  background-color: #f59e0b;
-}
-
-.edit-btn,
-.delete-btn {
-  border: none;
-  border-radius: 0.4rem;
-  padding: 0.4rem 0.8rem;
-  font-size: 0.85rem;
-  cursor: pointer;
-  color: white;
-  margin-right: 0.4rem;
-  transition: opacity 0.2s ease;
-}
-
-.edit-btn {
-  background-color: #2563eb;
-}
-
-.edit-btn:hover {
-  opacity: 0.9;
-}
-
-.delete-btn {
-  background-color: #dc2626;
-}
-
-.delete-btn:hover {
-  opacity: 0.9;
-}
-
+.preview-content { background:#fff; padding:12px; border-radius:10px; max-width:1100px; width:95%; max-height:90vh; overflow:auto; position:relative; }
+.preview-close { position:absolute; right:10px; top:10px; background:#fff; border:1px solid #e5e7eb; padding:6px 8px; border-radius:8px; cursor:pointer; }

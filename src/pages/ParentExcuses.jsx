@@ -1,119 +1,217 @@
-import React, { useState } from "react";
+/* eslint-disable no-unused-vars */
+import React, { useEffect, useState, useContext } from "react";
 import "./ParentExcuses.css";
+import { AuthContext } from "../context/AuthContext";
+import { apiListMatriculas, apiHistorialAsistencia, apiSolicitarJustificacion } from "../config/api";
 
 export default function ParentExcuses() {
-  const [excuses, setExcuses] = useState([
-    { date: "05 Oct 2025", reason: "Cita médica", status: "Aprobada", notes: "Revisada por coordinación." },
-    { date: "07 Oct 2025", reason: "Dolor de cabeza", status: "Pendiente", notes: "En revisión." },
-  ]);
+  const { user, loading: authLoading } = useContext(AuthContext);
+  const [children, setChildren] = useState([]); 
+  const [selectedChild, setSelectedChild] = useState("");
+  const [courses, setCourses] = useState([]);
+  const [selectedCourse, setSelectedCourse] = useState("");
+  const [fecha, setFecha] = useState(new Date().toISOString().slice(0,10));
+  const [motivo, setMotivo] = useState("");
+  const [file, setFile] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [loadingList, setLoadingList] = useState(false);
+  const [excuses, setExcuses] = useState([]);
+  const [feedback, setFeedback] = useState(null);
 
-  const [newExcuse, setNewExcuse] = useState({ date: "", reason: "", notes: "" });
+  const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:4001/api').replace(/\/api\/?$/i, '');
+  function buildFileUrl(path) { if (!path) return null; if (/^https?:\/\//i.test(path)) return path; const p = path.startsWith('/') ? path : `/${path}`; return `${API_BASE}${p}`; }
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!newExcuse.date || !newExcuse.reason) return alert("Por favor completa los campos obligatorios.");
-    const updated = [
-      ...excuses,
-      { ...newExcuse, status: "Pendiente" },
-    ];
-    setExcuses(updated);
-    setNewExcuse({ date: "", reason: "", notes: "" });
-  };
-
-  const getStatusClass = (status) => {
-    switch (status) {
-      case "Pendiente": return "status-pending";
-      case "Aprobada": return "status-approved";
-      case "Rechazada": return "status-rejected";
-      default: return "";
+  useEffect(() => {
+    async function loadChildren() {
+      try {
+        const mats = await apiListMatriculas().catch(() => []);
+        const map = new Map();
+        (Array.isArray(mats) ? mats : []).forEach(m => {
+          const est = m.estudiante || (m.estudiante_id ? { id: m.estudiante_id, nombre: m.estudiante_nombre, apellido1: m.estudiante_apellido1 } : null);
+          const curso = m.curso || (m.curso_id ? { id: m.curso_id, nombre: m.curso_nombre || `Curso ${m.curso_id}` } : null);
+          if (!est || !est.id) return;
+          const id = Number(est.id);
+          if (!map.has(id)) map.set(id, { id, nombre: `${est.nombre || ''} ${est.apellido1 || ''}`.trim() || `Alumno ${id}`, cursos: [] });
+          const entry = map.get(id);
+          if (curso && curso.id && !entry.cursos.find(c => Number(c.id) === Number(curso.id))) {
+            entry.cursos.push({ id: Number(curso.id), nombre: curso.nombre || `Curso ${curso.id}` });
+          }
+        });
+        const kids = Array.from(map.values());
+        setChildren(kids);
+        if (kids.length > 0) {
+          setSelectedChild(kids[0].id);
+          if (kids[0].cursos && kids[0].cursos.length > 0) {
+            setSelectedCourse(String(kids[0].cursos[0].id));
+          }
+        }
+      } catch (e) {
+        console.error("loadChildren:", e);
+        setChildren([]);
+      }
     }
-  };
+    if (!authLoading) loadChildren();
+  }, [authLoading]);
+
+  useEffect(() => {
+    const kid = children.find(k => Number(k.id) === Number(selectedChild));
+    const cursos = kid?.cursos || [];
+    setCourses(cursos);
+    if (cursos.length > 0 && !selectedCourse) setSelectedCourse(String(cursos[0].id));
+    loadExcuses();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedChild, children]);
+
+  useEffect(() => { loadExcuses(); /* eslint-disable-next-line */ }, [selectedCourse]);
+
+  async function loadExcuses() {
+    if (!selectedChild) return setExcuses([]);
+    setLoadingList(true);
+    setFeedback(null);
+    try {
+      const params = selectedCourse ? { curso_id: selectedCourse } : {};
+      const data = await apiHistorialAsistencia(Number(selectedChild), params);
+      const arr = (data && data.asistencias) ? data.asistencias : (Array.isArray(data) ? data : []);
+      const filtered = (arr || []).filter(r =>
+        r.justificacion || r.archivo_justificacion || r.estado === 'justificado' || r.registrado_por
+      );
+      // ordenar por fecha desc
+      filtered.sort((a,b) => (b.fecha || "").localeCompare(a.fecha || "") || (b.updated_at||"").localeCompare(a.updated_at||""));
+      // normalizar URL y estructura
+      const normalized = filtered.map(r => ({
+        ...r,
+        archivo_url: buildFileUrl(r.archivo_justificacion || r.archivo || ''),
+        estado_normal: r.estado || null
+      }));
+      setExcuses(normalized);
+    } catch (e) {
+      console.error("loadExcuses:", e);
+      setExcuses([]);
+      setFeedback({ type: "error", text: e.message || "Error cargando excusas" });
+    } finally {
+      setLoadingList(false);
+    }
+  }
+
+  async function handleSubmit(e) {
+    e?.preventDefault();
+    if (!selectedChild || !selectedCourse) return alert("Selecciona hijo y curso.");
+    if (!fecha || !motivo) return alert("Fecha y motivo son obligatorios.");
+    setLoading(true);
+    setFeedback(null);
+    try {
+      // Si el rol actual es padre, enviamos estudiante_id para que el backend registre en el estudiante correcto
+      const payload = {
+        estudiante_id: Number(selectedChild),
+        curso_id: Number(selectedCourse),
+        fecha,
+        justificacion: motivo
+      };
+      await apiSolicitarJustificacion(payload, file);
+      setFeedback({ type: "success", text: "Excusa enviada correctamente." });
+      setMotivo("");
+      setFile(null);
+      await loadExcuses();
+    } catch (err) {
+      console.error("submit excuse:", err);
+      setFeedback({ type: "error", text: err.message || "Error enviando excusa" });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function getStatusLabel(r) {
+    if (r.estado_normal === 'justificado') return { text: 'Aprobada', cls: 'status-approved' };
+    if (r.justificacion || r.archivo_justificacion || r.registrado_por) return { text: 'Pendiente revisión', cls: 'status-pending' };
+    if (r.estado_normal === 'ausente') return { text: 'Ausente', cls: 'status-absent' };
+    return { text: r.estado_normal || '—', cls: '' };
+  }
+
+  if (authLoading) return <div className="loading">Cargando...</div>;
 
   return (
-    <div className="parent-excuses">
-      <h1 className="page-title">Excusas Médicas</h1>
-      <p className="page-subtitle">
-        Envía y consulta las excusas médicas de <strong>Carlos González</strong>.
-      </p>
+    <div className="parent-excuses page-root">
+      <h2>Excusas / Justificantes</h2>
+      <p className="muted">Envía y consulta las excusas médicas del/los hijos asociados.</p>
 
-      {/* Formulario de nueva excusa */}
-      <form className="excuse-form" onSubmit={handleSubmit}>
-        <h2>📄 Nueva Excusa</h2>
+      <div className="pe-controls">
+        <label>Hijo</label>
+        <select value={selectedChild || ""} onChange={e => setSelectedChild(Number(e.target.value))}>
+          <option value="">— Selecciona hijo —</option>
+          {children.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+        </select>
 
-        <div className="form-grid">
-          <div className="form-group">
-            <label>Fecha de la ausencia *</label>
-            <input
-              type="date"
-              value={newExcuse.date}
-              onChange={(e) => setNewExcuse({ ...newExcuse, date: e.target.value })}
-              required
-            />
-          </div>
+        <label>Curso</label>
+        <select value={selectedCourse || ""} onChange={e => setSelectedCourse(e.target.value)}>
+          <option value="">— Selecciona curso —</option>
+          {courses.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+        </select>
 
-          <div className="form-group">
-            <label>Motivo *</label>
-            <input
-              type="text"
-              placeholder="Ej: cita médica, fiebre, etc."
-              value={newExcuse.reason}
-              onChange={(e) => setNewExcuse({ ...newExcuse, reason: e.target.value })}
-              required
-            />
-          </div>
+        <button className="btn" onClick={loadExcuses}>Refrescar</button>
+      </div>
 
-          <div className="form-group">
-            <label>Observaciones</label>
-            <textarea
-              placeholder="Detalles adicionales..."
-              value={newExcuse.notes}
-              onChange={(e) => setNewExcuse({ ...newExcuse, notes: e.target.value })}
-              rows={3}
-            />
-          </div>
-
-          <div className="form-group file-group">
-            <label>Adjuntar archivo (opcional)</label>
-            <button type="button" className="file-btn">📎 Seleccionar archivo</button>
-          </div>
+      <form className="pe-form" onSubmit={handleSubmit}>
+        <div className="row">
+          <label>Fecha</label>
+          <input type="date" value={fecha} onChange={e => setFecha(e.target.value)} />
         </div>
 
-        <button type="submit" className="submit-btn">Enviar Excusa</button>
+        <div className="row">
+          <label>Motivo</label>
+          <textarea value={motivo} onChange={e => setMotivo(e.target.value)} rows={3} placeholder="Describe la razón..." />
+        </div>
+
+        <div className="row">
+          <label>Archivo justificante (opcional)</label>
+          <input type="file" accept="image/*,application/pdf" onChange={e => setFile(e.target.files?.[0] || null)} />
+          {file && <div className="file-note">Seleccionado: {file.name}</div>}
+        </div>
+
+        <div className="actions">
+          <button type="submit" disabled={loading}>{loading ? "Enviando..." : "Enviar excusa"}</button>
+          <button type="button" className="ghost" onClick={() => { setMotivo(""); setFile(null); setFeedback(null); }}>Limpiar</button>
+        </div>
+
+        {feedback && <div className={`feedback ${feedback.type}`}>{feedback.text}</div>}
       </form>
 
-      {/* Tabla de excusas enviadas */}
-      <div className="excuse-list">
-        <h2>📋 Excusas Enviadas</h2>
-        <table>
+      <hr />
+
+      <h3>Historial de excusas</h3>
+      {loadingList ? <div className="empty">Cargando...</div> : excuses.length === 0 ? (
+        <div className="empty">No hay excusas enviadas para el periodo/curso seleccionado.</div>
+      ) : (
+        <table className="pe-table">
           <thead>
             <tr>
               <th>Fecha</th>
-              <th>Motivo</th>
               <th>Estado</th>
-              <th>Observaciones</th>
+              <th>Motivo</th>
+              <th>Archivo</th>
+              <th>Registrado por</th>
+              <th>Observaciones profesor</th>
             </tr>
           </thead>
           <tbody>
-            {excuses.map((ex, i) => (
-              <tr key={i}>
-                <td>{ex.date}</td>
-                <td>{ex.reason}</td>
-                <td>
-                  <span className={`status-badge ${getStatusClass(ex.status)}`}>
-                    {ex.status}
-                  </span>
-                </td>
-                <td>{ex.notes || "-"}</td>
-              </tr>
-            ))}
+            {excuses.map(r => {
+              const s = getStatusLabel(r);
+                const registrador = r.registrador
+                ? `${r.registrador.nombre} ${r.registrador.apellido1 || ''} (${r.registrador.rol || ''})`
+                : (r.registrado_por ? (r.registrado_por === r.estudiante_id ? 'Estudiante' : `Padre (ID ${r.registrado_por})`) : '-');
+              return (
+                <tr key={r.id}>
+                  <td>{r.fecha}</td>
+                  <td><span className={`badge ${s.cls}`}>{s.text}</span></td>
+                  <td style={{ maxWidth: 320 }}>{r.justificacion || '-'}</td>
+                  <td>{r.archivo_url ? <a href={r.archivo_url} target="_blank" rel="noreferrer">Ver</a> : '-'}</td>
+                  <td>{registrador}</td>
+                  <td>{r.observaciones || '-'}</td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
-      </div>
+      )}
     </div>
   );
 }
-
-
-
-
-

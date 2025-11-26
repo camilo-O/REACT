@@ -1,91 +1,29 @@
-.parent-schedule {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-}
+.parent-schedule { padding:18px; max-width:1100px; margin:0 auto; font-family: Inter, system-ui, sans-serif; color:#0b1d4a; }
+.ps-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+.page-title { margin:0; font-size:1.25rem; }
+.page-subtitle { margin:0; color:#6b7280; font-size:0.95rem; }
 
-.page-title {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: #1e3a8a;
-  margin-bottom: 0.2rem;
-}
+.ps-controls { display:flex; gap:10px; align-items:center; margin-bottom:12px; flex-wrap:wrap; }
+.ps-controls label { font-weight:600; margin-right:6px; }
+.ps-controls select, .ps-controls .btn { padding:8px 10px; border-radius:8px; border:1px solid #e5e7eb; background:#fff; }
+.ps-controls .btn { background: linear-gradient(180deg,#0d335b,#134a84); color:#fff; border:none; cursor:pointer; }
 
-.page-subtitle {
-  font-size: 1rem;
-  color: #6b7280;
-  margin-bottom: 1.5rem;
-}
+.ps-error { margin:10px 0; padding:8px; background:#fff1f2; color:#9f1239; border-radius:8px; }
+.ps-empty { padding:14px; text-align:center; color:#6b7280; border-radius:8px; background:#fff; border:1px dashed #e6eef9; }
 
-/* Tabla de horario */
-.schedule-table {
-  background: white;
-  border-radius: 1rem;
-  box-shadow: 0 1px 4px rgb(0 0 0 / 0.06);
-  padding: 1.5rem;
-  overflow-x: auto;
-}
+.ps-day { margin-top:16px; }
+.ps-day-title { margin:0 0 8px 0; color:#06203d; }
+.ps-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap:10px; }
 
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
+.ps-card { padding:12px; border-radius:8px; background:#fff; border:1px solid #eef6ff; box-shadow:0 6px 18px rgba(10,25,55,0.03); }
+.ps-card-header { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+.ps-card h4 { margin:0; font-size:1rem; color:#06203d; }
+.ps-time { font-size:0.9rem; color:#6b7280; }
 
-thead {
-  background-color: #f3f4f6;
-}
+.ps-meta { margin-top:8px; color:#374151; font-size:0.92rem; }
 
-th {
-  text-align: left;
-  padding: 0.75rem 1rem;
-  color: #374151;
-  font-weight: 600;
-  font-size: 0.95rem;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-td {
-  padding: 0.85rem 1rem;
-  color: #111827;
-  font-size: 0.95rem;
-  border-bottom: 1px solid #f3f4f6;
-}
-
-/* Hover filas */
-tbody tr:hover {
-  background-color: #f9fafb;
-  transition: background 0.2s ease;
-}
-
-/* Etiquetas de materia */
-.subject-badge {
-  display: inline-block;
-  font-size: 0.85rem;
-  font-weight: 600;
-  border-radius: 0.5rem;
-  padding: 0.3rem 0.75rem;
-  color: white;
-}
-
-/* Colores por asignatura */
-.subject-matemáticas {
-  background-color: #2563eb;
-}
-.subject-lengua-castellana {
-  background-color: #9333ea;
-}
-.subject-ciencias-naturales {
-  background-color: #059669;
-}
-.subject-educación-física {
-  background-color: #f59e0b;
-}
-.subject-sociales {
-  background-color: #ef4444;
-}
-.subject-arte {
-  background-color: #db2777;
-}
-.subject-inglés {
-  background-color: #3b82f6;
+/* responsive */
+@media (max-width:900px) {
+  .ps-grid { grid-template-columns: 1fr; }
+  .ps-controls { gap:8px; }
 }

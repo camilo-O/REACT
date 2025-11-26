@@ -31,7 +31,7 @@ export default function ParentHome() {
     <div className="parent-dashboard">
       <h1 className="page-title">Director del panel</h1>
       <p className="page-subtitle">
-        Seguimiento académico de <strong>Carlos González</strong>.
+        Seguimiento académico de <strong>andres oliuba</strong>.
       </p>
 
       {/* Métricas */}

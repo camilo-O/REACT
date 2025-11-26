@@ -1,91 +1,128 @@
+import React, { useEffect, useState, useContext } from "react";
 import "./TeacherComms.css";
-import { useState } from "react";
+import { AuthContext } from "../context/AuthContext";
+import { apiListCursos, apiCurso, apiEnviarComunicacion } from "../config/api";
 
 export default function TeacherComms() {
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      autor: "Prof. Carlos Mendoza",
-      tiempo: "Hace 2 horas",
-      mensaje:
-        "Excelente trabajo en el último examen de álgebra. Carlos mostró gran dedicación.",
-      categoria: "Coordinación Académica",
-    },
-    {
-      id: 2,
-      autor: "Coordinación Académica",
-      tiempo: "Ayer",
-      mensaje:
-        "Recordamos que la reunión de padres será el próximo viernes a las 6:00 PM.",
-      categoria: "Aviso General",
-    },
-  ]);
+  const { user, loading: authLoading } = useContext(AuthContext);
 
+  const [messages, setMessages] = useState([]); // historial local (puedes obtener del backend si lo guardas)
   const [newMessage, setNewMessage] = useState("");
   const [categoria, setCategoria] = useState("Aviso General");
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!newMessage.trim()) return alert("⚠️ Escribe un mensaje antes de publicar.");
+  const [cursos, setCursos] = useState([]);
+  const [cursoId, setCursoId] = useState("");
+  const [students, setStudents] = useState([]);
+  const [studentId, setStudentId] = useState("");
 
-    const nuevo = {
-      id: Date.now(),
-      autor: "Prof. Ana Gómez",
-      tiempo: "Justo ahora",
-      mensaje: newMessage,
-      categoria,
-    };
+  const [sending, setSending] = useState(false);
+  const [feedback, setFeedback] = useState(null);
 
-    setMessages([nuevo, ...messages]);
-    setNewMessage("");
-    setCategoria("Aviso General");
-  };
+  useEffect(() => {
+    async function loadCursos() {
+      try {
+        const all = await apiListCursos();
+        // filtrar cursos del profesor
+        const mine = (all || []).filter(
+          c => (c.profesor && c.profesor.id === user?.id) || c.profesor_id === user?.id
+        );
+        setCursos(Array.isArray(mine) ? mine : []);
+      } catch (e) {
+        console.error("loadCursos:", e);
+        setCursos([]);
+      }
+    }
+    if (!authLoading) loadCursos();
+  }, [user, authLoading]);
+
+  useEffect(() => {
+    async function loadStudents() {
+      if (!cursoId) return setStudents([]);
+      try {
+        const curso = await apiCurso(cursoId);
+        // backend: curso.estudiantes o curso.estudiantes puede contener los alumnos
+        const estudiantes = curso?.estudiantes || curso?.estudiantes || curso?.alumnos || [];
+        setStudents(Array.isArray(estudiantes) ? estudiantes : []);
+      } catch (e) {
+        console.error("loadStudents:", e);
+        setStudents([]);
+      }
+    }
+    loadStudents();
+  }, [cursoId]);
+
+  async function handleSend(e) {
+    e?.preventDefault();
+    if (!newMessage.trim()) return setFeedback({ type: "error", text: "Escribe un mensaje." });
+    if (!studentId) return setFeedback({ type: "error", text: "Selecciona el estudiante cuyo padre recibirá el mensaje." });
+
+    setSending(true);
+    setFeedback(null);
+    try {
+      const payload = { estudiante_id: Number(studentId), message: newMessage, categoria };
+      const res = await apiEnviarComunicacion(payload);
+      // respuesta esperada { message, count }
+      setMessages(prev => [{ id: Date.now(), autor: `${user?.nombre || "Profesor"}`, tiempo: "Justo ahora", mensaje: newMessage, categoria }, ...prev]);
+      setNewMessage("");
+      setCategoria("Aviso General");
+      setFeedback({ type: "success", text: res?.message || "Mensaje enviado" });
+    } catch (err) {
+      console.error("enviar comunicacion:", err);
+      setFeedback({ type: "error", text: err.message || "Error enviando mensaje" });
+    } finally {
+      setSending(false);
+    }
+  }
 
   return (
-    <div className="teacher-comms">
-      <h2 className="title">💬 Comunicación</h2>
-      <p className="subtitle">
-        Publica mensajes o comunicados para los padres y estudiantes. Ellos podrán
-        leerlos, pero no responderlos.
-      </p>
+    <div className="teacher-comms page-root">
+      <h2 className="title">💬 Comunicación — Enviar a padres</h2>
+      <p className="subtitle">Selecciona curso y estudiante; el sistema enviará la comunicación a los padres vinculados.</p>
 
-      {/* Formulario de publicación */}
-      <form className="comms-form" onSubmit={handleSubmit}>
-        <label>Categoría:</label>
-        <select
-          value={categoria}
-          onChange={(e) => setCategoria(e.target.value)}
-        >
-          <option value="Aviso General">Aviso General</option>
-          <option value="Felicitación">Felicitación</option>
-          <option value="Recordatorio">Recordatorio</option>
+      <div className="comms-controls">
+        <select value={cursoId} onChange={e => { setCursoId(e.target.value); setStudentId(""); }}>
+          <option value="">— Selecciona curso —</option>
+          {cursos.map(c => <option key={c.id} value={c.id}>{c.nombre} {c.grado ? `· ${c.grado}` : ""} {c.grupo ? `(${c.grupo})` : ""}</option>)}
         </select>
 
-        <textarea
-          rows={3}
-          placeholder="Escribe el mensaje que deseas enviar..."
-          value={newMessage}
-          onChange={(e) => setNewMessage(e.target.value)}
-        />
+        <select value={studentId} onChange={e => setStudentId(e.target.value)}>
+          <option value="">— Selecciona estudiante —</option>
+          {students.map(s => <option key={s.id} value={s.id}>{`${s.nombre} ${s.apellido1 || ""}`}</option>)}
+        </select>
+      </div>
 
-        <button type="submit" className="send-btn">
-          📢 Publicar Mensaje
-        </button>
+      <form className="comms-form" onSubmit={handleSend}>
+        <label>Categoría</label>
+        <select value={categoria} onChange={e => setCategoria(e.target.value)}>
+          <option>Aviso General</option>
+          <option>Felicitación</option>
+          <option>Recordatorio</option>
+        </select>
+
+        <label>Mensaje</label>
+        <textarea rows={4} placeholder="Escribe el mensaje..." value={newMessage} onChange={e => setNewMessage(e.target.value)} />
+
+        <div className="form-actions">
+          <button type="submit" className="send-btn" disabled={sending}>{sending ? "Enviando..." : "📢 Enviar a padres"}</button>
+          <button type="button" className="btn-ghost" onClick={() => { setNewMessage(""); setFeedback(null); }}>Limpiar</button>
+          {feedback && <div className={`feedback ${feedback.type}`}>{feedback.text}</div>}
+        </div>
       </form>
 
-      {/* Listado de mensajes publicados */}
-      <div className="messages-list">
-        {messages.map((msg) => (
+      <section className="messages-list">
+        <h3>Mensajes recientes (local)</h3>
+        {messages.length === 0 ? <div className="empty">No hay mensajes publicados.</div> : messages.map(msg => (
           <div key={msg.id} className="message-card">
             <div className="msg-header">
-              <h4>{msg.autor}</h4>
-              <span className="time">{msg.tiempo}</span>
+              <div className="msg-meta">
+                <strong>{msg.autor}</strong> · <span className="time">{msg.tiempo}</span>
+              </div>
+              <div className="msg-category">{msg.categoria}</div>
             </div>
             <p className="msg-body">{msg.mensaje}</p>
-            <span className="msg-category">{msg.categoria}</span>
           </div>
         ))}
-      </div>
+      </section>
     </div>
   );
 }

@@ -43,6 +43,7 @@ export default function AdminLayout() {
     { name: "Tareas", icon: <ClipboardList size={18} />, path: "/admin/tasks" },
     { name: "Reportes", icon: <FileBarChart size={18} />, path: "/admin/reports" },
     { name: "Calendario", icon: <Calendar size={18} />, path: "/admin/calendar" },
+    { name: "Horarios", icon: <Calendar size={18} />, path: "/admin/schedules" },
     { name: "Seguridad", icon: <ShieldCheck size={18} />, path: "/admin/security" },
     { name: "Configuración", icon: <Settings size={18} />, path: "/admin/settings" },
   ];

@@ -8,7 +8,7 @@ import {
   apiListEventos,
   apiResumenHoy
 } from "../config/api";
-import "./AdminCourses.css";
+import "./AdminDashboard.css";
 
 export default function AdminDashboard() {
   const { user, loading: authLoading } = useContext(AuthContext);
@@ -34,7 +34,6 @@ export default function AdminDashboard() {
           apiResumenHoy().catch(() => null)
         ]);
 
-        // usuarios: ruta admin
         let usuarios = [];
         try {
           const API = import.meta.env.VITE_API_URL || "http://localhost:4001/api";
@@ -65,76 +64,80 @@ export default function AdminDashboard() {
     if (!authLoading) load();
   }, [authLoading]);
 
-  if (authLoading || loading) return <div>Cargando panel administrativo...</div>;
+  if (authLoading || loading) return <div className="admin-loading">Cargando panel administrativo...</div>;
 
   return (
     <div className="admin-dashboard">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+      <div className="adm-header">
         <div>
-          <h2>Panel Administrativo</h2>
-          <p style={{ margin: 0, color: "#6b7280" }}>Resumen rápido del sistema</p>
+          <h1 className="adm-title">Panel Administrativo</h1>
+          <p className="adm-sub">Resumen rápido del sistema</p>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={() => navigate("/admin/users")}>Usuarios</button>
-          <button onClick={() => navigate("/admin/courses")}>Cursos</button>
-          <button onClick={() => navigate("/admin/subjects")}>Materias</button>
-          <button onClick={() => navigate("/admin/tasks")}>Tareas</button>
+
+        <div className="adm-actions">
+          <button className="btn" onClick={() => navigate("/admin/users")}>Usuarios</button>
+          <button className="btn ghost" onClick={() => navigate("/admin/courses")}>Cursos</button>
+          <button className="btn ghost" onClick={() => navigate("/admin/subjects")}>Materias</button>
+          <button className="btn ghost" onClick={() => navigate("/admin/tasks")}>Tareas</button>
         </div>
       </div>
 
-      <section style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 12, marginBottom: 16 }}>
-        <div className="course-card" style={{ padding: 12 }}>
-          <div style={{ fontSize: 20, fontWeight: 700 }}>{counts.usuarios}</div>
-          <div style={{ color: "#6b7280" }}>Usuarios</div>
+      <section className="stats-row">
+        <div className="stat-card">
+          <div className="stat-num">{counts.usuarios}</div>
+          <div className="stat-label">Usuarios</div>
         </div>
 
-        <div className="course-card" style={{ padding: 12 }}>
-          <div style={{ fontSize: 20, fontWeight: 700 }}>{counts.cursos}</div>
-          <div style={{ color: "#6b7280" }}>Cursos</div>
+        <div className="stat-card">
+          <div className="stat-num">{counts.cursos}</div>
+          <div className="stat-label">Cursos</div>
         </div>
 
-        <div className="course-card" style={{ padding: 12 }}>
-          <div style={{ fontSize: 20, fontWeight: 700 }}>{counts.materias}</div>
-          <div style={{ color: "#6b7280" }}>Materias</div>
+        <div className="stat-card">
+          <div className="stat-num">{counts.materias}</div>
+          <div className="stat-label">Materias</div>
         </div>
 
-        <div className="course-card" style={{ padding: 12 }}>
-          <div style={{ fontSize: 20, fontWeight: 700 }}>{counts.eventos}</div>
-          <div style={{ color: "#6b7280" }}>Eventos</div>
+        <div className="stat-card">
+          <div className="stat-num">{counts.eventos}</div>
+          <div className="stat-label">Eventos</div>
         </div>
       </section>
 
-      <section style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 12 }}>
-        <div className="course-card">
-          <h3 style={{ marginTop: 0 }}>Actividad reciente</h3>
+      <section className="main-grid">
+        <div className="panel recent">
+          <h3>Actividad reciente</h3>
           {eventos.length === 0 ? (
             <div className="empty">No hay eventos recientes</div>
           ) : (
-            <ul style={{ margin: 0, padding: 0, listStyle: "none" }}>
+            <ul className="recent-list">
               {eventos.map(ev => (
-                <li key={ev.id} style={{ padding: 8, borderBottom: "1px solid #eef2f7" }}>
-                  <strong>{ev.titulo}</strong>
-                  <div style={{ color: "#6b7280", fontSize: 13 }}>{ev.fecha} {ev.hora_inicio ? `• ${ev.hora_inicio}` : ""}</div>
-                  {ev.descripcion ? <div style={{ marginTop: 6 }}>{ev.descripcion}</div> : null}
+                <li key={ev.id} className="recent-item">
+                  <div className="ri-left">
+                    <strong className="ri-title">{ev.titulo}</strong>
+                    <div className="ri-meta">{ev.fecha} {ev.hora_inicio ? `• ${ev.hora_inicio}` : ""}</div>
+                    {ev.descripcion ? <div className="ri-desc">{ev.descripcion}</div> : null}
+                  </div>
+                  <div className="ri-badge">{ev.tipo || 'Actividad'}</div>
                 </li>
               ))}
             </ul>
           )}
         </div>
 
-        <div className="course-card">
-          <h4 style={{ marginTop: 0 }}>Resumen (hoy)</h4>
+        <aside className="panel summary">
+          <h4>Resumen (hoy)</h4>
           {resumen ? (
-            <div style={{ display: "grid", gap: 6 }}>
-              <div>Presentes: {resumen.presentes ?? 0}</div>
-              <div>Ausentes: {resumen.ausentes ?? 0}</div>
-              <div>Tardanzas: {resumen.tardanzas ?? 0}</div>
-              <div>Justificados: {resumen.justificados ?? 0}</div>
+            <div className="summary-grid">
+              <div className="item"><span className="strong">{resumen.presentes ?? 0}</span><small>Presentes</small></div>
+              <div className="item"><span className="strong">{resumen.ausentes ?? 0}</span><small>Ausentes</small></div>
+              <div className="item"><span className="strong">{resumen.tardanzas ?? 0}</span><small>Tardanzas</small></div>
+              <div className="item"><span className="strong">{resumen.justificados ?? 0}</span><small>Justificados</small></div>
             </div>
           ) : (
             <div className="empty">Resumen no disponible</div>
           )}
-        </div>
+        </aside>
       </section>
     </div>
   );

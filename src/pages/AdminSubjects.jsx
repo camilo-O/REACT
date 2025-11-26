@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 import React, { useEffect, useState } from "react";
 import {
   apiListMaterias,
@@ -9,14 +8,17 @@ import {
   apiListCursos,
   apiListProfesores
 } from "../config/api";
+import "./AdminSubjects.css";
 
 export default function AdminSubjects() {
   const [materias, setMaterias] = useState([]);
   const [cursos, setCursos] = useState([]);
   const [profesores, setProfesores] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   const [form, setForm] = useState({ nombre: "", codigo: "", curso_id: "", profesor_id: "" });
+  const [filter, setFilter] = useState("");
 
   async function loadAll() {
     setLoading(true);
@@ -30,7 +32,8 @@ export default function AdminSubjects() {
       setCursos(Array.isArray(c) ? c : []);
       setProfesores(Array.isArray(p) ? p : []);
     } catch (e) {
-      console.error(e);
+      console.error("loadAll materias:", e);
+      alert("No se pudieron cargar materias/cursos/profesores.");
     } finally {
       setLoading(false);
     }
@@ -41,94 +44,138 @@ export default function AdminSubjects() {
   async function crearMateria(e) {
     e?.preventDefault();
     if (!form.nombre || !form.codigo) return alert("Nombre y código son obligatorios");
+    setSaving(true);
     try {
       await apiCrearMateria({
-        nombre: form.nombre,
-        codigo: form.codigo,
+        nombre: form.nombre.trim(),
+        codigo: form.codigo.trim(),
         curso_id: form.curso_id || undefined,
         profesor_id: form.profesor_id || undefined
-      });      
+      });
       alert("Materia creada");
       setForm({ nombre: "", codigo: "", curso_id: "", profesor_id: "" });
-      loadAll();
+      await loadAll();
     } catch (err) {
-      alert(err.message);
+      console.error("crearMateria:", err);
+      alert(err.message || "Error al crear materia");
+    } finally {
+      setSaving(false);
     }
   }
 
-  async function asignarProfesor(materiaId, profesorId) {
+  async function handleAsignarProfesor(materiaId, profesorId) {
+    if (!profesorId) return;
+    if (!confirm("Asignar este profesor a la materia?")) return;
     try {
-      await apiAsignarProfesorMateria(materiaId, profesorId);
-      alert("Profesor asignado a materia");
-      loadAll();
+      await apiAsignarProfesorMateria(materiaId, Number(profesorId));
+      alert("Profesor asignado");
+      await loadAll();
     } catch (e) {
-      alert(e.message);
+      console.error("asignarProfesor:", e);
+      alert(e.message || "Error al asignar profesor");
     }
   }
 
-  async function asignarCurso(materiaId, cursoId) {
+  async function handleAsignarCurso(materiaId, cursoId) {
+    if (!cursoId) return;
+    if (!confirm("Asignar esta materia al curso?")) return;
     try {
-      await apiAsignarMateriaCurso(materiaId, cursoId);
+      await apiAsignarMateriaCurso(materiaId, Number(cursoId));
       alert("Materia asignada al curso");
-      loadAll();
+      await loadAll();
     } catch (e) {
-      alert(e.message);
+      console.error("asignarCurso:", e);
+      alert(e.message || "Error al asignar curso");
     }
   }
 
-  if (loading) return <div>Cargando materias...</div>;
+  async function handleEditar(m) {
+    const nombre = prompt("Nombre de la materia", m.nombre);
+    if (nombre === null) return;
+    const codigo = prompt("Código", m.codigo || "");
+    if (codigo === null) return;
+    try {
+      await apiEditarMateria(m.id, { nombre: nombre.trim(), codigo: codigo.trim() });
+      alert("Materia actualizada");
+      await loadAll();
+    } catch (e) {
+      console.error("editarMateria:", e);
+      alert(e.message || "Error al editar materia");
+    }
+  }
+
+  const visible = materias
+    .filter(x => !filter ? true : String(x.nombre).toLowerCase().includes(filter.toLowerCase()) || (x.codigo || "").toLowerCase().includes(filter.toLowerCase()))
+    .sort((a,b) => a.nombre.localeCompare(b.nombre));
+
+  if (loading) return <div className="admin-subjects"><div className="empty">Cargando materias...</div></div>;
 
   return (
-    <div className="admin-courses">
+    <div className="admin-subjects">
       <div className="header">
-        <h2>Materias / Gestión</h2>
+        <h2>Materias — Gestión</h2>
+        <div className="header-actions">
+          <input placeholder="Buscar materia o código..." value={filter} onChange={e => setFilter(e.target.value)} />
+          <button onClick={loadAll}>Refrescar</button>
+        </div>
       </div>
 
-      <section className="course-form" style={{ marginBottom: 12 }}>
-        <form onSubmit={crearMateria} style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+      <section className="create-section">
+        <form onSubmit={crearMateria} className="create-form">
           <input placeholder="Nombre de materia" value={form.nombre} onChange={e => setForm({...form, nombre: e.target.value})} required />
           <input placeholder="Código" value={form.codigo} onChange={e => setForm({...form, codigo: e.target.value})} required />
-          <button type="submit">Crear materia</button>
+          <select value={form.curso_id} onChange={e => setForm({...form, curso_id: e.target.value})}>
+            <option value="">Asignar a curso (opcional)</option>
+            {cursos.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+          </select>
+          <select value={form.profesor_id} onChange={e => setForm({...form, profesor_id: e.target.value})}>
+            <option value="">Asignar profesor (opcional)</option>
+            {profesores.map(p => <option key={p.id} value={p.id}>{p.nombre} {p.apellido1 || ''}</option>)}
+          </select>
+          <button type="submit" className="primary" disabled={saving}>{saving ? "Guardando..." : "Crear materia"}</button>
         </form>
       </section>
 
-      <section>
-        <h3>Listado de materias ({materias.length})</h3>
-        {materias.length === 0 ? <div className="empty">No hay materias</div> : (
-          <div className="course-list">
-            {materias.map(m => (
-              <div key={m.id} className="course-card">
-                <div className="title">
-                  <strong>{m.nombre}</strong>
-                </div>
-                <div className="meta">
-                  <div>Código: {m.codigo || "—"}</div>
-                  <div>Curso asignado: {m.curso?.nombre || m.curso_id || "—"}</div>
-                  <div>Profesor: {m.profesor ? `${m.profesor.nombre} ${m.profesor.apellido1}` : "—"}</div>
+      <section className="list-section">
+        <h3>Listado ({visible.length})</h3>
+        {visible.length === 0 ? (
+          <div className="empty">No hay materias.</div>
+        ) : (
+          <div className="subjects-grid">
+            {visible.map(m => (
+              <article key={m.id} className="subject-card">
+                <div className="subject-top">
+                  <strong className="subject-name">{m.nombre}</strong>
+                  <small className="subject-code">{m.codigo || "—"}</small>
                 </div>
 
-                <div className="controls" style={{ marginTop: 8 }}>
-                  <select defaultValue="" onChange={e => {
-                    const cursoId = e.target.value;
-                    if (!cursoId) return;
-                    if (!confirm("Asignar esta materia al curso seleccionado?")) return;
-                    asignarCurso(m.id, Number(cursoId));
-                  }}>
+                <div className="subject-body">
+                  <div className="meta-row">
+                    <div>Curso:</div>
+                    <div className="meta-value">{m.curso?.nombre || (m.curso_id ? `ID ${m.curso_id}` : "Sin curso")}</div>
+                  </div>
+                  <div className="meta-row">
+                    <div>Director de curso:</div>
+                    <div className="meta-value">{m.profesor ? `${m.profesor.nombre} ${m.profesor.apellido1 || ''}` : "Sin profesor"}</div>
+                  </div>
+                </div>
+
+                <div className="subject-actions">
+                  <select defaultValue="" onChange={e => { if (e.target.value) handleAsignarCurso(m.id, e.target.value); }}>
                     <option value="">Asignar a curso...</option>
                     {cursos.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
                   </select>
 
-                  <select defaultValue="" onChange={e => {
-                    const profesorId = e.target.value;
-                    if (!profesorId) return;
-                    if (!confirm("Asignar profesor a esta materia?")) return;
-                    asignarProfesor(m.id, Number(profesorId));
-                  }}>
+                  <select defaultValue="" onChange={e => { if (e.target.value) handleAsignarProfesor(m.id, e.target.value); }}>
                     <option value="">Asignar profesor...</option>
-                    {profesores.map(p => <option key={p.id} value={p.id}>{p.nombre} {p.apellido1} ({p.username || p.email})</option>)}
+                    {profesores.map(p => <option key={p.id} value={p.id}>{p.nombre} {p.apellido1 || ''}</option>)}
                   </select>
+
+                  <div className="card-actions">
+                    <button onClick={() => handleEditar(m)}>Editar</button>
+                  </div>
                 </div>
-              </div>
+              </article>
             ))}
           </div>
         )}

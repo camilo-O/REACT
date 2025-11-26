@@ -20,6 +20,8 @@ import AdminCalendar from "./pages/AdminCalendar";
 import AdminSecurity from "./pages/AdminSecurity";
 import AdminSettings from "./pages/AdminSettings";
 import AdminSubjects from "./pages/AdminSubjects";
+import CourseDetail from "./pages/CourseDetail";
+import AdminSchedules from "./pages/AdminSchedules";
 
 
 // Páginas del padre
@@ -40,6 +42,8 @@ import TeacherExcuses from "./pages/TeacherExcuses";
 import TeacherAttendance from "./pages/TeacherAttendance";
 import TeacherAppointments from "./pages/TeacherAppointments";
 import TeacherComms from "./pages/TeacherComms";
+import TeacherEvents from "./pages/TeacherEvents";
+
 
 // Páginas del estudiante
 import StudentDashboard from "./pages/StudentDashboard";
@@ -101,12 +105,15 @@ ReactDOM.createRoot(document.getElementById("root")).render(
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/users" element={<AdminUsers />} />
             <Route path="/admin/courses" element={<AdminCourses />} />
+            <Route path="/admin/courses/:id" element={<CourseDetail />} />
             <Route path="/admin/tasks" element={<AdminTasks />} />
             <Route path="/admin/reports" element={<AdminReports />} />
             <Route path="/admin/calendar" element={<AdminCalendar />} />
             <Route path="/admin/security" element={<AdminSecurity />} />
             <Route path="/admin/settings" element={<AdminSettings />} />
             <Route path="/admin/subjects" element={<AdminSubjects />} />
+            <Route path="/admin/schedules" element={<AdminSchedules />} />
+
 
           </Route>
 
@@ -129,6 +136,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
           <Route path="/teacher/attendance" element={<TeacherAttendance />} />
           <Route path="/teacher/appointments" element={<TeacherAppointments />} />
           <Route path="/teacher/comms" element={<TeacherComms />} />
+          <Route path="/teacher/events" element={<TeacherEvents />} />
         </Route>
 
         <Route element={<GuardStudent><StudentLayout /></GuardStudent>}>

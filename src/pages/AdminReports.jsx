@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import "./AdminReports.css";
 import {
   apiListCursos,
   apiListarReportesCurso,
@@ -7,6 +6,7 @@ import {
   apiListarReportesEstudiante,
   apiCrearReporteEstudiante
 } from "../config/api";
+import "./AdminReports.css";
 
 export default function AdminReports() {
   const [tab, setTab] = useState("curso"); // 'curso' | 'estudiante'
@@ -14,6 +14,7 @@ export default function AdminReports() {
   const [cursoId, setCursoId] = useState("");
   const [reportesCurso, setReportesCurso] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   // formulario reporte curso
   const [formCurso, setFormCurso] = useState({ curso_id: "", nombre_curso: "", comentario: "" });
@@ -37,11 +38,13 @@ export default function AdminReports() {
   async function loadReportesCurso(id) {
     if (!id) return setReportesCurso([]);
     setLoading(true);
+    setError(null);
     try {
       const data = await apiListarReportesCurso({ curso_id: id });
-      setReportesCurso(data);
+      setReportesCurso(Array.isArray(data) ? data : []);
     } catch (e) {
-      alert(e.message);
+      setError(e.message || "Error listando reportes de curso");
+      setReportesCurso([]);
     } finally {
       setLoading(false);
     }
@@ -49,29 +52,38 @@ export default function AdminReports() {
 
   async function crearReporteCurso(e) {
     e?.preventDefault();
-    if (!formCurso.curso_id || !formCurso.nombre_curso) return alert("Curso y nombre son obligatorios");
+    if (!formCurso.curso_id || !formCurso.nombre_curso) return alert("Curso y nombre del reporte son obligatorios");
+    setLoading(true);
     try {
-      await apiCrearReporteCurso(formCurso);
-      alert("Reporte de curso creado");
+      await apiCrearReporteCurso({
+        curso_id: Number(formCurso.curso_id),
+        nombre_curso: formCurso.nombre_curso.trim(),
+        comentario: formCurso.comentario || null
+      });
       setFormCurso({ curso_id: "", nombre_curso: "", comentario: "" });
-      loadReportesCurso(formCurso.curso_id);
-    } catch (e) {
-      alert(e.message);
+      if (cursoId) loadReportesCurso(cursoId);
+      alert("Reporte de curso creado");
+    } catch (err) {
+      alert(err.message || "Error al crear reporte de curso");
+    } finally {
+      setLoading(false);
     }
   }
 
   async function buscarReportesEst(e) {
     e?.preventDefault();
     setLoading(true);
+    setError(null);
     try {
-      const data = await apiListarReportesEstudiante({
-        curso_id: filtrosEst.curso_id || undefined,
-        materia_id: filtrosEst.materia_id || undefined,
-        estudiante_id: filtrosEst.estudiante_id || undefined
-      });
-      setReportesEst(data);
+      const params = {};
+      if (filtrosEst.curso_id) params.curso_id = filtrosEst.curso_id;
+      if (filtrosEst.materia_id) params.materia_id = filtrosEst.materia_id;
+      if (filtrosEst.estudiante_id) params.estudiante_id = filtrosEst.estudiante_id;
+      const data = await apiListarReportesEstudiante(params);
+      setReportesEst(Array.isArray(data) ? data : []);
     } catch (err) {
-      alert(err.message);
+      setError(err.message || "Error buscando reportes de estudiante");
+      setReportesEst([]);
     } finally {
       setLoading(false);
     }
@@ -79,9 +91,8 @@ export default function AdminReports() {
 
   async function crearReporteEst(e) {
     e?.preventDefault();
-    if (!formEst.estudiante_id || !formEst.curso_id || !formEst.materia_id) {
-      return alert("estudiante_id, curso_id y materia_id son obligatorios");
-    }
+    if (!formEst.estudiante_id || !formEst.curso_id || !formEst.materia_id) return alert("estudiante, curso y materia son obligatorios");
+    setLoading(true);
     try {
       await apiCrearReporteEstudiante({
         estudiante_id: Number(formEst.estudiante_id),
@@ -91,84 +102,90 @@ export default function AdminReports() {
         comentario: formEst.comentario || null,
         nota: formEst.nota ? Number(formEst.nota) : null
       });
-      alert("Reporte de estudiante creado");
       setFormEst({ estudiante_id: "", curso_id: "", materia_id: "", estado_rendimiento: "regular", comentario: "", nota: "" });
-      buscarReportesEst();
+      alert("Reporte de estudiante creado");
+      await buscarReportesEst();
     } catch (err) {
-      alert(err.message);
+      alert(err.message || "Error al crear reporte de estudiante");
+    } finally {
+      setLoading(false);
     }
   }
 
   return (
-    <div>
-      <h2>Reportes</h2>
-
-      <div style={{ marginBottom: 12 }}>
-        <button onClick={() => setTab("curso")} style={{ marginRight: 8, fontWeight: tab === "curso" ? "700" : "500" }}>
-          Reportes por Curso
-        </button>
-        <button onClick={() => setTab("estudiante")} style={{ fontWeight: tab === "estudiante" ? "700" : "500" }}>
-          Reportes de Estudiante
-        </button>
+    <div className="admin-reports">
+      <div className="top">
+        <h2>Reportes</h2>
+        <div className="tabs">
+          <button className={tab === "curso" ? "active" : ""} onClick={() => setTab("curso")}>Reportes por Curso</button>
+          <button className={tab === "estudiante" ? "active" : ""} onClick={() => setTab("estudiante")}>Reportes de Estudiante</button>
+        </div>
       </div>
 
       {tab === "curso" && (
-        <>
-          <section style={{ marginBottom: 16 }}>
+        <section>
+          <div className="panel">
             <h3>Crear reporte de curso</h3>
-            <form onSubmit={crearReporteCurso} style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            <form className="form-row" onSubmit={crearReporteCurso}>
               <select value={formCurso.curso_id} onChange={e => setFormCurso({ ...formCurso, curso_id: e.target.value })}>
                 <option value="">Selecciona curso</option>
                 {cursos.map(c => <option key={c.id} value={c.id}>{c.nombre} ({c.grado}-{c.grupo})</option>)}
               </select>
               <input placeholder="Nombre del reporte" value={formCurso.nombre_curso} onChange={e => setFormCurso({ ...formCurso, nombre_curso: e.target.value })} />
               <input placeholder="Comentario (opcional)" value={formCurso.comentario} onChange={e => setFormCurso({ ...formCurso, comentario: e.target.value })} />
-              <button type="submit">Crear</button>
+              <button type="submit" disabled={loading}>Crear</button>
             </form>
-          </section>
+          </div>
 
-          <section>
+          <div className="panel" style={{ marginTop: 12 }}>
             <h3>Listar reportes por curso</h3>
-            <div style={{ marginBottom: 8 }}>
+            <div className="form-row">
               <select value={cursoId} onChange={e => { setCursoId(e.target.value); loadReportesCurso(e.target.value); }}>
                 <option value="">Selecciona curso</option>
                 {cursos.map(c => <option key={c.id} value={c.id}>{c.nombre} ({c.grado}-{c.grupo})</option>)}
               </select>
+              <button onClick={() => loadReportesCurso(cursoId)} disabled={!cursoId}>Cargar</button>
             </div>
 
-            {loading ? <div>Cargando...</div> : (
-              <ul>
-                {reportesCurso.length === 0 ? <li>No hay reportes para este curso</li> :
-                  reportesCurso.map(r => (
-                    <li key={r.id}>
-                      <strong>{r.nombre_curso}</strong> — {r.comentario || "sin comentario"} — <small>{new Date(r.updated_at || r.created_at).toLocaleString()}</small>
+            {loading ? <div className="empty">Cargando...</div> : (
+              reportesCurso.length === 0 ? <div className="empty">No hay reportes para este curso</div> :
+                <ul className="report-list">
+                  {reportesCurso.map(r => (
+                    <li key={r.id} className="report-item">
+                      <div className="left">
+                        <div className="name">{r.nombre_curso}</div>
+                        <div className="meta">{r.comentario || "sin comentario"}</div>
+                      </div>
+                      <div className="right">
+                        <small>{new Date(r.updated_at || r.created_at).toLocaleString()}</small>
+                      </div>
                     </li>
-                  ))
-                }
-              </ul>
+                  ))}
+                </ul>
             )}
-          </section>
-        </>
+            {error && <div className="error">{error}</div>}
+          </div>
+        </section>
       )}
 
       {tab === "estudiante" && (
-        <>
-          <section style={{ marginBottom: 16 }}>
+        <section>
+          <div className="panel">
             <h3>Buscar reportes de estudiante</h3>
-            <form onSubmit={buscarReportesEst} style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            <form className="form-row" onSubmit={buscarReportesEst}>
               <select value={filtrosEst.curso_id} onChange={e => setFiltrosEst({ ...filtrosEst, curso_id: e.target.value })}>
                 <option value="">Filtrar por curso (opcional)</option>
                 {cursos.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
               </select>
-              <input placeholder="materia_id (opcional)" value={filtrosEst.materia_id} onChange={e => setFiltrosEst({ ...filtrosEst, materia_id: e.target.value })} />
-              <input placeholder="estudiante_id (opcional)" value={filtrosEst.estudiante_id} onChange={e => setFiltrosEst({ ...filtrosEst, estudiante_id: e.target.value })} />
-              <button type="submit">Buscar</button>
+              <input placeholder="materia_id" value={filtrosEst.materia_id} onChange={e => setFiltrosEst({ ...filtrosEst, materia_id: e.target.value })} />
+              <input placeholder="estudiante_id" value={filtrosEst.estudiante_id} onChange={e => setFiltrosEst({ ...filtrosEst, estudiante_id: e.target.value })} />
+              <button type="submit" disabled={loading}>Buscar</button>
             </form>
-          </section>
+          </div>
 
-          <section style={{ marginBottom: 16 }}>
+          <div className="panel" style={{ marginTop: 12 }}>
             <h3>Crear reporte de estudiante</h3>
-            <form onSubmit={crearReporteEst} style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+            <form className="form-row" onSubmit={crearReporteEst}>
               <input placeholder="estudiante_id" value={formEst.estudiante_id} onChange={e => setFormEst({ ...formEst, estudiante_id: e.target.value })} />
               <select value={formEst.curso_id} onChange={e => setFormEst({ ...formEst, curso_id: e.target.value })}>
                 <option value="">Selecciona curso</option>
@@ -182,32 +199,33 @@ export default function AdminReports() {
               </select>
               <input placeholder="nota (opcional)" value={formEst.nota} onChange={e => setFormEst({ ...formEst, nota: e.target.value })} style={{ width: 100 }} />
               <input placeholder="Comentario" value={formEst.comentario} onChange={e => setFormEst({ ...formEst, comentario: e.target.value })} />
-              <button type="submit">Crear</button>
+              <button type="submit" disabled={loading}>Crear</button>
             </form>
-          </section>
+          </div>
 
-          <section>
+          <div className="panel" style={{ marginTop: 12 }}>
             <h3>Resultados</h3>
-            {loading ? <div>Cargando...</div> : (
-              <ul>
-                {reportesEst.length === 0 ? <li>No hay reportes</li> :
-                  reportesEst.map(r => (
-                    <li key={r.id || `${r.estudiante_id}-${r.curso_id}-${r.materia_id}`}>
-                      <strong>Estudiante:</strong> {r.estudiante?.nombre ? `${r.estudiante.nombre} ${r.estudiante.apellido1}` : r.estudiante_id}
-                      {" — "}
-                      <strong>Curso:</strong> {r.curso?.nombre || r.curso_id}
-                      {" — "}
-                      <strong>Materia:</strong> {r.materia?.nombre || r.materia_id}
-                      {" — "}
-                      <strong>Estado:</strong> {r.estado_rendimiento} {r.nota ? `— Nota: ${r.nota}` : ""}
-                      <div>{r.comentario}</div>
+            {loading ? <div className="empty">Cargando...</div> : (
+              reportesEst.length === 0 ? <div className="empty">No hay reportes</div> :
+                <ul className="report-list">
+                  {reportesEst.map(r => (
+                    <li key={r.id || `${r.estudiante_id}-${r.curso_id}-${r.materia_id}`} className="report-item">
+                      <div className="left">
+                        <div><strong>{r.estudiante ? `${r.estudiante.nombre} ${r.estudiante.apellido1 || ""}` : r.estudiante_id}</strong></div>
+                        <div className="meta small">{r.curso?.nombre || r.curso_id} — {r.materia?.nombre || r.materia_id}</div>
+                        <div className="meta">{r.comentario || ""}</div>
+                      </div>
+                      <div className="right">
+                        <div className="tag">{r.estado_rendimiento}{r.nota ? ` • ${r.nota}` : ""}</div>
+                        <small>{new Date(r.updated_at || r.created_at || Date.now()).toLocaleString()}</small>
+                      </div>
                     </li>
-                  ))
-                }
-              </ul>
+                  ))}
+                </ul>
             )}
-          </section>
-        </>
+            {error && <div className="error">{error}</div>}
+          </div>
+        </section>
       )}
     </div>
   );
