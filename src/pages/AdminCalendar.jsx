@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { apiListEventos, apiCrearEvento, apiEditarEvento, apiEliminarEvento, apiListCursos } from "../config/api";
+import {apiCancelarEvento, apiListEventos, apiCrearEvento, apiEditarEvento, apiEliminarEvento, apiListCursos } from "../config/api";
 import "./AdminCourses.css"; // estilos existentes
 
 export default function AdminCalendar() {
