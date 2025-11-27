@@ -6,7 +6,8 @@ import {
   apiListarReportesCurso,
   apiCrearReporteCurso,
   apiListarReportesEstudiante,
-  apiCrearReporteEstudiante
+  apiCrearReporteEstudiante,
+  apiRendimientoCurso
 } from "../config/api";
 
 // ...existing code...
