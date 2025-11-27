@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useContext } from "react";
 import "./TeacherComms.css";
 import { AuthContext } from "../context/AuthContext";
-import { apiListCursos, apiCurso, apiEnviarComunicacion } from "../config/api";
+import { apiListCursos, apiCurso, apiEnviarComunicacion, apiListComunicacionesEnviadas } from "../config/api";
 
 export default function TeacherComms() {
   const { user, loading: authLoading } = useContext(AuthContext);
@@ -17,6 +17,11 @@ export default function TeacherComms() {
 
   const [sending, setSending] = useState(false);
   const [feedback, setFeedback] = useState(null);
+
+  const [chats, setChats] = useState([]); 
+  const [loadingChats, setLoadingChats] = useState(false);
+  const [includeStudent, setIncludeStudent] = useState(false);
+
 
   useEffect(() => {
     async function loadCursos() {
@@ -51,6 +56,52 @@ export default function TeacherComms() {
     loadStudents();
   }, [cursoId]);
 
+    useEffect(() => {
+    loadEnviadas();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cursoId, studentId]);
+
+  async function loadEnviadas() {
+    setLoadingChats(true);
+    try {
+      const params = {};
+      if (cursoId) params.curso_id = Number(cursoId);
+      if (studentId) params.estudiante_id = Number(studentId);
+      const sent = await apiListComunicacionesEnviadas(params);
+      const arr = Array.isArray(sent) ? sent : [];
+      // agrupar por destinatario.usuario_id
+      const map = new Map();
+      arr.forEach(n => {
+        const key = n.usuario_id;
+        if (!map.has(key)) map.set(key, { destinatario: n.destinatario || { id: key }, estudiante_id: n.estudiante_id || null, mensajes: [] });
+        map.get(key).mensajes.push({
+          id: n.id,
+          titulo: n.titulo,
+          texto: n.mensaje,
+          fecha: n.created_at
+        });
+      });
+      // ordenar mensajes por fecha desc dentro de cada chat
+      const grouped = Array.from(map.values()).map(chat => ({
+        ...chat,
+        mensajes: chat.mensajes.sort((a,b) => String(b.fecha||'').localeCompare(a.fecha||''))
+      }));
+      // ordenar chats por última actividad
+      grouped.sort((a,b) => {
+        const fa = a.mensajes[0]?.fecha || '';
+        const fb = b.mensajes[0]?.fecha || '';
+        return String(fb).localeCompare(fa);
+      });
+      setChats(grouped);
+    } catch (e) {
+      console.error('loadEnviadas:', e);
+      setChats([]);
+    } finally {
+      setLoadingChats(false);
+    }
+  }
+
+
   async function handleSend(e) {
     e?.preventDefault();
     if (!newMessage.trim()) return setFeedback({ type: "error", text: "Escribe un mensaje." });
@@ -59,13 +110,15 @@ export default function TeacherComms() {
     setSending(true);
     setFeedback(null);
     try {
-      const payload = { estudiante_id: Number(studentId), message: newMessage, categoria };
+      const payload = { estudiante_id: Number(studentId), message: newMessage, categoria, incluir_estudiante: includeStudent };
       const res = await apiEnviarComunicacion(payload);
       // respuesta esperada { message, count }
       setMessages(prev => [{ id: Date.now(), autor: `${user?.nombre || "Profesor"}`, tiempo: "Justo ahora", mensaje: newMessage, categoria }, ...prev]);
       setNewMessage("");
       setCategoria("Aviso General");
       setFeedback({ type: "success", text: res?.message || "Mensaje enviado" });
+          setIncludeStudent(false);
+      await loadEnviadas();
     } catch (err) {
       console.error("enviar comunicacion:", err);
       setFeedback({ type: "error", text: err.message || "Error enviando mensaje" });
@@ -101,6 +154,11 @@ export default function TeacherComms() {
 
         <label>Mensaje</label>
         <textarea rows={4} placeholder="Escribe el mensaje..." value={newMessage} onChange={e => setNewMessage(e.target.value)} />
+        
+        <label style={{ display:'flex', alignItems:'center', gap:8 }}>
+          <input type="checkbox" checked={includeStudent} onChange={e => setIncludeStudent(e.target.checked)} />
+          Incluir estudiante (además de los padres)
+        </label>
 
         <div className="form-actions">
           <button type="submit" className="send-btn" disabled={sending}>{sending ? "Enviando..." : "📢 Enviar a padres"}</button>
@@ -122,6 +180,36 @@ export default function TeacherComms() {
             <p className="msg-body">{msg.mensaje}</p>
           </div>
         ))}
+      </section>
+            <section className="messages-list">
+        <h3>Mis conversaciones enviadas {loadingChats ? '...' : `(${chats.length})`}</h3>
+        {loadingChats ? <div className="empty">Cargando conversaciones...</div> :
+          chats.length === 0 ? <div className="empty">Sin mensajes enviados.</div> :
+          chats.map(chat => (
+            <div key={chat.destinatario.id} className="message-card">
+              <div className="msg-header">
+                <div className="msg-meta">
+                  <strong>{chat.destinatario?.nombre ? `${chat.destinatario.nombre} ${chat.destinatario.apellido1 || ''}` : `ID ${chat.destinatario.id}`}</strong>
+                  <span className="time" style={{ marginLeft:8 }}>
+                    {chat.mensajes[0]?.fecha ? new Date(chat.mensajes[0].fecha).toLocaleString() : ''}
+                  </span>
+                </div>
+                <div className="msg-category">{chat.estudiante_id ? `Padre de Est. ${chat.estudiante_id}` : 'Padre'}</div>
+              </div>
+              <div style={{ marginTop:8, display:'flex', flexDirection:'column', gap:6 }}>
+               {chat.mensajes.map(m => (
+                  <div key={m.id} style={{ border:'1px solid #eef6ff', borderRadius:8, padding:8 }}>
+                    <div style={{ display:'flex', justifyContent:'space-between', color:'#6b7280', fontSize:'0.9rem' }}>
+                      <span>{m.titulo || 'Comunicado'}</span>
+                      <span>{new Date(m.fecha).toLocaleString()}</span>
+                    </div>
+                    <div style={{ marginTop:6, color:'#374151' }}>{m.texto}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))
+        }
       </section>
     </div>
   );

@@ -200,30 +200,19 @@ function buildFileUrl(path) {
 
               <hr />
               <h4>Entrega del estudiante</h4>
-              {!selectedTask.entrega ? (
-                <div className="empty">No has entregado esta tarea.</div>
-              ) : (
-                <div className="st-entrega">
-                  <div className="st-row"><strong>Fecha entrega:</strong> {selectedTask.entrega.updated_at || selectedTask.entrega.created_at}</div>
-                  {selectedTask.entrega.archivo_url && (
-                    <div className="st-row">
-                      <strong>Archivo:</strong>{" "}
-                      <a href={selectedTask.entrega.archivo_url} target="_blank" rel="noreferrer">Descargar / Abrir</a>
-                    </div>
-                  )}
-                  {selectedTask.entrega.imagen_url && (
-                    <div className="st-row">
-                      <strong>Imagen:</strong>{" "}
-                      <a href={selectedTask.entrega.imagen_url} target="_blank" rel="noreferrer">Ver imagen</a>
-                    </div>
-                  )}
-                  <div className="st-row"><strong>Comentario estudiante:</strong> {selectedTask.entrega.comentario || '—'}</div>
-                  <div className="st-row"><strong>Nota:</strong> {selectedTask.entrega.nota ?? '—'}</div>
-                  {selectedTask.entrega.comentario_profesor && (
-                    <div className="st-row"><strong>Comentario profesor:</strong> {selectedTask.entrega.comentario_profesor}</div>
-                  )}
-                </div>
-              )}
+                {selectedTask?.entregas && selectedTask.entregas.length > 0 && (
+                  <div className="st-entrega">
+                    {selectedTask.entregas.map(e => (
+                      <div key={e.id} style={{ marginBottom:12 }}>
+                        <div><strong>Mi comentario:</strong> {e.comentario || '—'}</div>
+                        <div><strong>Nota:</strong> {e.nota !== null && e.nota !== undefined ? e.nota : '—'}</div>
+                        <div><strong>Comentario profesor:</strong> {e.comentario_profesor || '—'}</div>
+                        <div><strong>Archivo:</strong> {e.archivo_ruta ? <a href={buildFileUrl(e.archivo_ruta)} target="_blank" rel="noreferrer">Ver archivo</a> : '—'}</div>
+                        <div><strong>Imagen:</strong> {e.imagen_ruta ? <a href={buildFileUrl(e.imagen_ruta)} target="_blank" rel="noreferrer">Ver imagen</a> : '—'}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
             </div>
             <div className="st-modal-footer">
               <button className="btn" onClick={closeModal}>Cerrar</button>

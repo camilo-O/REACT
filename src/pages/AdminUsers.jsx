@@ -1,13 +1,15 @@
+/* eslint-disable no-unused-vars */
 import React, { useEffect, useState } from "react";
 import "./AdminUsers.css";
 const API = import.meta.env.VITE_API_URL || "http://localhost:4001/api";
 
-import { apiListMatriculas, apiUpdateMatricula, apiAsignarPadre, apiAdminUpdateUser } from "../config/api";
+import { apiListMatriculas, apiUpdateMatricula, apiAsignarPadre, apiAdminUpdateUser, apiPadreDeEstudiante, apiAdminDeleteUser } from "../config/api";
 
 export default function AdminUsersPage() {
   const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState("");
+
   const [roleFilter, setRoleFilter] = useState("");
   const [estadoFilter, setEstadoFilter] = useState("");
   const [form, setForm] = useState({
@@ -32,6 +34,13 @@ export default function AdminUsersPage() {
   const [assignIdent, setAssignIdent] = useState("");
   const [assignLoading, setAssignLoading] = useState(false);
   const [assignFeedback, setAssignFeedback] = useState(null);
+    const [assignReplace, setAssignReplace] = useState(false);
+
+      const [viewParentFor, setViewParentFor] = useState(null);
+  const [parentInfo, setParentInfo] = useState(null);
+  const [parentLoading, setParentLoading] = useState(false);
+  const [parentError, setParentError] = useState(null);
+
 
   async function openAssignModal(user) {
     setAssignModalFor(user);
@@ -39,21 +48,64 @@ export default function AdminUsersPage() {
     setAssignFeedback(null);
   }
 
-  async function submitAssign(e) {
+    async function submitUnassign(e) {
     e?.preventDefault();
-    if (!assignModalFor) return;
-    if (!assignIdent) return setAssignFeedback({ type: 'error', text: 'Número de identificación requerido' });
+    if (!assignModalFor?.id || !assignIdent.trim()) return;
     setAssignLoading(true);
     setAssignFeedback(null);
     try {
-      // usa apiAsignarPadre (añádelo en src/config/api.jsx)
-      const res = await apiAsignarPadre({ padre_id: assignModalFor.id, estudiante_numero_identificacion: String(assignIdent).trim() });
-      setAssignFeedback({ type: 'success', text: res.message || 'Asignación guardada' });
-      // opcional: refrescar lista de usuarios/acciones
-      await loadUsers();
-    } catch (err) {
-      console.error('assign error', err);
-      setAssignFeedback({ type: 'error', text: err.message || 'Error asignando' });
+      const res = await fetch(`${API}/padres/desasignar`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token")}` },
+        body: JSON.stringify({ padre_id: assignModalFor.id, estudiante_numero_identificacion: assignIdent.trim() })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "No se pudo desasignar");
+      setAssignFeedback({ type: "success", text: data.message || "Desasignado" });
+    } catch (e) {
+      setAssignFeedback({ type: "error", text: e.message });
+    } finally {
+      setAssignLoading(false);
+    }
+  }
+
+
+    async function openParentModal(user) {
+    setViewParentFor(user);
+    setParentInfo(null);
+    setParentError(null);
+    if (user.rol !== 'estudiante') { setParentError('Solo estudiantes'); return; }
+    setParentLoading(true);
+    try {
+      const data = await apiPadreDeEstudiante(user.id);
+      setParentInfo(data?.padre || null);
+    } catch (e) {
+      setParentError(e.message || 'Error cargando padre');
+    } finally {
+      setParentLoading(false);
+    }
+  }
+
+
+  async function submitAssign(e) {
+    e?.preventDefault();
+    setAssignFeedback(null);
+    setAssignLoading(true);
+    try {
+      const res = await fetch(`${API}/padres/asignar`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token")}` },
+        body: JSON.stringify({
+          padre_id: assignModalFor.id,
+          estudiante_numero_identificacion: assignIdent.trim(),
+          reemplazar: assignReplace
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Error al asignar");
+      setAssignFeedback({ type: "success", text: data.message || "Asignado" });
+    } catch (e) {
+      setAssignFeedback({ type: "error", text: e.message });
     } finally {
       setAssignLoading(false);
     }
@@ -209,7 +261,7 @@ export default function AdminUsersPage() {
           <form onSubmit={crear} className="create-form">
             <input placeholder="Nombre" required value={form.nombre} onChange={e => setForm({ ...form, nombre: e.target.value })} />
             <input placeholder="Apellido1" required value={form.apellido1} onChange={e => setForm({ ...form, apellido1: e.target.value })} />
-            <input placeholder="Número identificación" value={form.numero_identificacion} onChange={e => setForm({ ...form, numero_identificacion: e.target.value })} />
+            <input placeholder="Nº identificación" value={form.numero_identificacion} onChange={e=>setForm({...form, numero_identificacion:e.target.value})} />            
             <input placeholder="Teléfono" value={form.telefono} onChange={e => setForm({ ...form, telefono: e.target.value })} />
             <input type="date" placeholder="Fecha Nac." value={form.fecha_nacimiento} onChange={e => setForm({ ...form, fecha_nacimiento: e.target.value })} />
             <input placeholder="Dirección" value={form.direccion} onChange={e => setForm({ ...form, direccion: e.target.value })} />
@@ -245,19 +297,38 @@ export default function AdminUsersPage() {
                     <td>{u.nombre} {u.apellido1 || ""}</td>
                     <td>{u.rol}</td>
                     <td><div className="muted">{u.email || u.username}</div></td>
-                    <td>{u.numero_identificacion || "—"}</td>
+                   <td className="mono">{u.numero_identificacion || "—"}</td>
                     <td>{u.activo === false ? <span className="badge inactive">Desactivado</span> : <span className="badge active">Activo</span>}</td>
                     <td>
                       <div className="row-actions">
                         <button onClick={() => editar(u)}>Editar</button>
                         <button onClick={() => toggleActivo(u)}>{u.activo ? "Desactivar" : "Activar"}</button>
                         <button onClick={() => resetPassword(u)}>Reset Pass</button>
+
+                        <button
+                          onClick={async () => {
+                            if (!confirm(`Eliminar usuario ${u.nombre} (${u.username})?`)) return;
+                            try { await apiAdminDeleteUser(u.id); await loadUsers(); }
+                            catch(e){ alert(e.message || "Error al eliminar"); }
+                          }}
+                          style={{ color:'#b91c1c', borderColor:'#fee2e2' }}
+                        >
+                          Eliminar
+                        </button>
+
+                        {u.rol === 'estudiante' && (
+                          <button onClick={() => openParentModal(u)}>Ver padre</button>
+                        )}
+
                         {u.rol === 'estudiante' && (
                           <button onClick={() => openMatriculas(u)}>Matriculas</button>
                         )}                          
                         {u.rol === 'padre' && (
-                          <button onClick={() => openAssignModal(u)}>Asignar estudiante</button>
-                        )}                      
+                          <button onClick={() => openAssignModal(u)} disabled={u.rol !== "padre"}>
+                            Asignar estudiante
+                          </button>                        
+                        )}      
+
                         </div>
                     </td>
                   </tr>
@@ -269,23 +340,53 @@ export default function AdminUsersPage() {
         </main>
       </section>
 
-      {assignModalFor && (
-  <aside className="panel" style={{ position: "fixed", right: 18, top: 90, width: 420, zIndex: 60 }}>
-    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-      <h4 style={{ margin: 0 }}>Asignar estudiante a {assignModalFor.nombre}</h4>
-      <button onClick={() => setAssignModalFor(null)}>Cerrar</button>
-    </div>
-
-    <form onSubmit={submitAssign} style={{ display:'flex', flexDirection:'column', gap:8 }}>
-      <label>Número de identificación del estudiante</label>
-      <input value={assignIdent} onChange={e => setAssignIdent(e.target.value)} placeholder="Ej: 12345678" />
-      <div style={{ display:'flex', gap:8 }}>
-        <button type="submit" disabled={assignLoading} className="btn">{assignLoading ? 'Guardando...' : 'Asignar'}</button>
-        <button type="button" className="btn-ghost" onClick={() => setAssignModalFor(null)}>Cancelar</button>
+{assignModalFor && (
+  <div className="assign-overlay" onClick={() => setAssignModalFor(null)}>
+    <div className="assign-modal" role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
+      <div className="assign-header">
+        <h3 className="assign-title">
+          Asignar estudiante a: {assignModalFor.nombre} {assignModalFor.apellido1 || ""} (ID {assignModalFor.id})
+        </h3>
+        <button className="assign-close" onClick={() => setAssignModalFor(null)}>Cerrar</button>
       </div>
-      {assignFeedback && <div style={{ marginTop:8 }} className={`feedback ${assignFeedback.type}`}>{assignFeedback.text}</div>}
-    </form>
-  </aside>
+
+      <div className="assign-body">
+        <div className="assign-row">
+          <label>Nº identificación del estudiante</label>
+          <input
+            className="assign-input"
+            placeholder="Ej: 1020xxxxxx"
+            value={assignIdent}
+            onChange={e => setAssignIdent(e.target.value)}
+          />
+        </div>
+
+        <div className="assign-row assign-check">
+          <input
+            id="assignReplace"
+            type="checkbox"
+            checked={assignReplace}
+            onChange={e => setAssignReplace(e.target.checked)}
+          />
+          <label htmlFor="assignReplace">Reemplazar padre si el estudiante ya tiene uno asignado</label>
+        </div>
+
+        {assignFeedback && (
+          <div className={`assign-feedback ${assignFeedback.type}`}>{assignFeedback.text}</div>
+        )}
+      </div>
+
+      <div className="assign-actions">
+        <button className="am-btn am-ghost" onClick={() => setAssignModalFor(null)}>Cancelar</button>
+        <button className="am-btn am-danger" onClick={submitUnassign} disabled={assignLoading || !assignIdent}>
+          {assignLoading ? "Procesando..." : "Desasignar"}
+        </button>
+        <button className="am-btn am-primary" onClick={submitAssign} disabled={assignLoading || !assignIdent}>
+          {assignLoading ? "Asignando..." : "Asignar"}
+        </button>
+      </div>
+    </div>
+  </div>
 )}
 
       {/* Panel lateral de matrículas */}
@@ -314,6 +415,34 @@ export default function AdminUsersPage() {
           )}
         </aside>
       )}
+
+        {viewParentFor && (
+    <div className="assign-overlay" onClick={() => setViewParentFor(null)}>
+      <div className="assign-modal" role="dialog" aria-modal="true" onClick={e => e.stopPropagation()}>
+        <div className="assign-header">
+          <h3 className="assign-title">Padre asignado — Est. {viewParentFor.nombre} {viewParentFor.apellido1 || ''} (ID {viewParentFor.id})</h3>
+          <button className="assign-close" onClick={() => setViewParentFor(null)}>Cerrar</button>
+        </div>
+        <div className="assign-body">
+          {parentLoading ? <div className="assign-feedback info">Cargando...</div> :
+           parentError ? <div className="assign-feedback error">{parentError}</div> :
+           !parentInfo ? <div className="assign-feedback error">Sin padre asignado</div> : (
+            <>
+              <div className="assign-row"><label>Nombre</label><div className="assign-input" style={{border:'none'}}>{`${parentInfo.nombre} ${parentInfo.segundo_nombre || ''} ${parentInfo.apellido1 || ''} ${parentInfo.apellido2 || ''}`.trim()}</div></div>
+              <div className="assign-row"><label>Email</label><div className="assign-input" style={{border:'none'}}>{parentInfo.email || '—'}</div></div>
+              <div className="assign-row"><label>Teléfono</label><div className="assign-input" style={{border:'none'}}>{parentInfo.telefono || '—'}</div></div>
+              <div className="assign-row"><label>Dirección</label><div className="assign-input" style={{border:'none'}}>{parentInfo.direccion || '—'}</div></div>
+              <div className="assign-row"><label>Nº identificación</label><div className="assign-input" style={{border:'none'}}>{parentInfo.numero_identificacion || '—'}</div></div>
+              <div className="assign-row"><label>Estado</label><div className="assign-input" style={{border:'none'}}>{parentInfo.activo ? 'Activo' : 'Desactivado'}</div></div>
+            </>
+           )}
+        </div>
+        <div className="assign-actions">
+          <button className="am-btn am-ghost" onClick={() => setViewParentFor(null)}>Cerrar</button>
+        </div>
+      </div>
+    </div>
+  )}
     </div>
   );
 }

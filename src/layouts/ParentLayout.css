@@ -225,6 +225,71 @@
 
 
 
+/* Extensiones dinámicas */
+.parent-badges {
+  display:flex;
+  gap:10px;
+  margin:0 0 12px 0;
+  flex-wrap:wrap;
+}
+.mini-card {
+  background:#fff;
+  border:1px solid #e6eef9;
+  border-radius:10px;
+  padding:10px 14px;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  min-width:120px;
+  box-shadow:0 4px 10px rgba(13,51,91,0.05);
+}
+.mini-card strong { font-size:1.2rem; color:#06203d; }
+.mini-card span { font-size:0.75rem; text-transform:uppercase; letter-spacing:.5px; color:#6b7280; }
 
+.badge-pill {
+  margin-left:auto;
+  background:#dcfce7;
+  color:#166534;
+  font-size:10px;
+  padding:2px 6px;
+  border-radius:14px;
+  font-weight:700;
+  line-height:1;
+}
+.badge-pill.gray {
+  background:#eef2ff;
+  color:#0f172a;
+}
+
+.inline-badge {
+  margin-left:8px;
+  background:#eef2ff;
+  color:#0d335b;
+  padding:4px 8px;
+  border-radius:8px;
+  font-size:11px;
+  font-weight:600;
+}
+
+/* Error */
+.pl-error {
+  background:#fff1f2;
+  color:#9f1239;
+  padding:10px 12px;
+  border-radius:10px;
+  margin-bottom:12px;
+  font-weight:600;
+  border:1px solid #fecdd3;
+}
+
+/* Ajustar avatar si ya existe la clase original */
+.parent-header .avatar {
+  background:linear-gradient(135deg,#0d335b,#134a84);
+}
+
+/* Responsive badges */
+@media (max-width:760px){
+  .parent-badges { flex-direction:column; }
+}
 
 

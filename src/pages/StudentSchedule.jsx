@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useEffect, useState, useContext } from "react";
 import "./StudentSchedule.css";
 import { AuthContext } from "../context/AuthContext";

@@ -27,3 +27,7 @@
   .form-row { flex-direction:column; align-items:stretch; }
   .report-item { flex-direction:column; align-items:flex-start; gap:8px; }
 }
+
+.badge.bueno { background:#ecfdf5; color:#065f46; }
+.badge.regular { background:#fffbeb; color:#92400e; }
+.badge.malo { background:#fff1f2; color:#9f1239; }

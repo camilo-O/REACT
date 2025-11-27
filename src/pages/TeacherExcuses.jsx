@@ -1,11 +1,6 @@
 import React, { useEffect, useState, useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
-import {
-  apiListCursos,
-  apiAsistenciaPorFecha,
-  apiJustificarFalta,
-  apiActualizarAsistencia
-} from "../config/api";
+import { apiListCursos, apiListExcusas, apiActualizarExcusaEstado } from "../config/api";
 import "./TeacherExcuses.css";
 
 export default function TeacherExcuses() {
@@ -40,37 +35,27 @@ export default function TeacherExcuses() {
   }, [user, authLoading]);
 
   async function loadAsistencias() {
-    if (!cursoId || !fecha) {
-      setRecords([]);
-      return;
-    }
-    setLoading(true);
-    setFeedback(null);
+    if (!cursoId) { setRecords([]); return; }
+    setLoading(true); setFeedback(null);
     try {
-      const data = await apiAsistenciaPorFecha(cursoId, fecha);
-      let arr = Array.isArray(data) ? data : data?.asistencias || data || [];
-      // Normalizar estructura: asegurar que cada registro tenga estudiante { ... }
-      arr = arr.map(r => ({
-        id: r.id,
-        estudiante_id: r.estudiante_id ?? r.estudiante?.id,
-        estudiante: r.estudiante ?? { id: r.estudiante_id, nombre: r.nombre, apellido1: r.apellido1, numero_identificacion: r.numero_identificacion },
-        fecha: r.fecha,
-        estado: r.estado,
-        hora_llegada: r.hora_llegada,
-        observaciones: r.observaciones,
-        justificacion: r.justificacion,
-        archivo_justificacion: r.archivo_justificacion,
-        registrador: r.registrador || null
+      const params = { curso_id: Number(cursoId) };
+      if (filter === 'pendientes') params.estado = 'pendiente';
+      const excusas = await apiListExcusas(params);
+      const list = (Array.isArray(excusas) ? excusas : []).map(ex => ({
+        id: ex.id,
+        estudiante_id: ex.estudiante_id,
+        estudiante: ex.estudiante,                  // include para nombre/email
+        fecha: `${ex.fecha_inicio} → ${ex.fecha_fin}`,
+        estado: ex.estado,
+        observaciones: ex.observaciones || '',
+        justificacion: ex.motivo || '',
+        archivo_justificacion: ex.archivo_justificacion || null,
+        registrador: ex.solicitante || null,        // quien creó la excusa
+        registrado_por: ex.creado_por               // id numérico
       }));
-
-      if (filter === "pendientes") {
-        arr = arr.filter(r => r.estado === "ausente" && !r.justificacion && !r.archivo_justificacion);
-      }
-      setRecords(arr);
-      if (arr.length === 0) setFeedback({ type: "info", text: "No hay registros con esos filtros." });
+      setRecords(list);
     } catch (e) {
-      console.error("loadAsistencias:", e);
-      setFeedback({ type: "error", text: e.message || "Error al cargar asistencias" });
+      setFeedback({ type:'error', text: e.message || 'Error cargando excusas' });
       setRecords([]);
     } finally {
       setLoading(false);
@@ -106,27 +91,25 @@ export default function TeacherExcuses() {
   }
 
   async function aprobar(id) {
-    const just = prompt("Texto de justificación (opcional)", "Justificado por revisión del profesor");
-    const archivo = prompt("URL del archivo justificante (opcional)", "");
-    if (just === null && archivo === null) return;
+    const obs = prompt("Observaciones (opcional)", "Excusa aprobada");
+    if (obs === null) return;
     try {
-      await apiJustificarFalta(id, { justificacion: just || null, archivo_justificacion: archivo || null });
-      setFeedback({ type: "success", text: "Falta justificada." });
+      await apiActualizarExcusaEstado(id, { estado: 'aprobada', observaciones: obs || undefined });
       await loadAsistencias();
+      setFeedback({ type:'success', text:'Excusa aprobada' });
     } catch (e) {
-      setFeedback({ type: "error", text: e.message || "Error al justificar" });
+      setFeedback({ type:'error', text: e.message || 'No se pudo aprobar' });
     }
   }
 
-  async function rechazar(id) {
-    const obs = prompt("Motivo de rechazo (se guardará en observaciones)", "No procede justificante");
+   async function rechazar(id) {
+    const obs = prompt("Motivo de rechazo", "No procede justificante");
     if (obs === null) return;
     try {
-      await apiActualizarAsistencia(id, { estado: "ausente", observaciones: obs || null });
-      setFeedback({ type: "success", text: "Rechazo registrado." });
+      await apiActualizarExcusaEstado(id, { estado: 'rechazada', observaciones: obs || undefined });
       await loadAsistencias();
     } catch (e) {
-      setFeedback({ type: "error", text: e.message || "Error al rechazar" });
+      setFeedback({ type:'error', text: e.message || 'No se pudo rechazar' });
     }
   }
 

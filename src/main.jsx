@@ -25,7 +25,7 @@ import AdminSchedules from "./pages/AdminSchedules";
 
 
 // Páginas del padre
-import ParentHome from "./pages/ParentHome";
+import ParentHome from "./pages/ParentDashboard";
 import ParentTasks from "./pages/ParentTasks";
 import ParentSchedule from "./pages/ParentSchedule";
 import ParentExcuses from "./pages/ParentExcuses";
@@ -43,6 +43,8 @@ import TeacherAttendance from "./pages/TeacherAttendance";
 import TeacherAppointments from "./pages/TeacherAppointments";
 import TeacherComms from "./pages/TeacherComms";
 import TeacherEvents from "./pages/TeacherEvents";
+import TeacherAttendanceReport from "./pages/TeacherAttendanceReport";
+import TeacherAttendanceDetail from "./pages/TeacherAttendanceDetail";
 
 
 // Páginas del estudiante
@@ -137,6 +139,8 @@ ReactDOM.createRoot(document.getElementById("root")).render(
           <Route path="/teacher/appointments" element={<TeacherAppointments />} />
           <Route path="/teacher/comms" element={<TeacherComms />} />
           <Route path="/teacher/events" element={<TeacherEvents />} />
+         <Route path="/teacher/attendance-report" element={<TeacherAttendanceReport />} />
+          <Route path="/teacher/attendance-detail" element={<TeacherAttendanceDetail />} />
         </Route>
 
         <Route element={<GuardStudent><StudentLayout /></GuardStudent>}>

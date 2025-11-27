@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useContext } from "react";
 import "./ParentExcuses.css";
 import { AuthContext } from "../context/AuthContext";
-import { apiListMatriculas, apiHistorialAsistencia, apiSolicitarJustificacion } from "../config/api";
+import { apiListMatriculas, apiHistorialAsistencia, apiSolicitarJustificacion, apiCrearExcusa, apiListExcusas } from "../config/api";
 
 export default function ParentExcuses() {
   const { user, loading: authLoading } = useContext(AuthContext);
@@ -17,6 +17,7 @@ export default function ParentExcuses() {
   const [loadingList, setLoadingList] = useState(false);
   const [excuses, setExcuses] = useState([]);
   const [feedback, setFeedback] = useState(null);
+  const [fechaFin, setFechaFin] = useState(new Date().toISOString().slice(0,10));
 
   const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:4001/api').replace(/\/api\/?$/i, '');
   function buildFileUrl(path) { if (!path) return null; if (/^https?:\/\//i.test(path)) return path; const p = path.startsWith('/') ? path : `/${path}`; return `${API_BASE}${p}`; }
@@ -69,12 +70,12 @@ export default function ParentExcuses() {
     setLoadingList(true);
     setFeedback(null);
     try {
-      const params = selectedCourse ? { curso_id: selectedCourse } : {};
-      const data = await apiHistorialAsistencia(Number(selectedChild), params);
-      const arr = (data && data.asistencias) ? data.asistencias : (Array.isArray(data) ? data : []);
-      const filtered = (arr || []).filter(r =>
-        r.justificacion || r.archivo_justificacion || r.estado === 'justificado' || r.registrado_por
-      );
+      const params = { estudiante_id: Number(selectedChild) };
+      if (selectedCourse) params.curso_id = Number(selectedCourse);
+      const data = await apiListExcusas(params);
+      const arr = Array.isArray(data) ? data : [];
+      const filtered = arr.sort((a,b) => String(b.created_at||'').localeCompare(String(a.created_at||'')));
+       
       // ordenar por fecha desc
       filtered.sort((a,b) => (b.fecha || "").localeCompare(a.fecha || "") || (b.updated_at||"").localeCompare(a.updated_at||""));
       // normalizar URL y estructura
@@ -93,32 +94,31 @@ export default function ParentExcuses() {
     }
   }
 
-  async function handleSubmit(e) {
-    e?.preventDefault();
-    if (!selectedChild || !selectedCourse) return alert("Selecciona hijo y curso.");
-    if (!fecha || !motivo) return alert("Fecha y motivo son obligatorios.");
-    setLoading(true);
-    setFeedback(null);
-    try {
-      // Si el rol actual es padre, enviamos estudiante_id para que el backend registre en el estudiante correcto
-      const payload = {
-        estudiante_id: Number(selectedChild),
-        curso_id: Number(selectedCourse),
-        fecha,
-        justificacion: motivo
-      };
-      await apiSolicitarJustificacion(payload, file);
-      setFeedback({ type: "success", text: "Excusa enviada correctamente." });
-      setMotivo("");
-      setFile(null);
-      await loadExcuses();
-    } catch (err) {
-      console.error("submit excuse:", err);
-      setFeedback({ type: "error", text: err.message || "Error enviando excusa" });
-    } finally {
-      setLoading(false);
-    }
+async function handleSubmit(e) {
+  e?.preventDefault();
+  if (!selectedChild || !selectedCourse) return;
+  if (!fecha || !motivo) return;
+  setLoading(true);
+  setFeedback(null);
+  try {
+    const payload = {
+      estudiante_id: Number(selectedChild),
+      curso_id: Number(selectedCourse),
+      fecha_inicio: fecha,
+      fecha_fin: fechaFin || fecha,
+      motivo
+    };
+    await apiCrearExcusa(payload, file);
+    setFeedback({ type: "success", text: "Excusa registrada. Pendiente de revisión." });
+    setMotivo("");
+    setFile(null);
+    await loadExcuses();
+  } catch (err) {
+    setFeedback({ type: "error", text: err.message || "Error al crear excusa" });
+  } finally {
+    setLoading(false);
   }
+}
 
   function getStatusLabel(r) {
     if (r.estado_normal === 'justificado') return { text: 'Aprobada', cls: 'status-approved' };
@@ -154,7 +154,9 @@ export default function ParentExcuses() {
         <div className="row">
           <label>Fecha</label>
           <input type="date" value={fecha} onChange={e => setFecha(e.target.value)} />
-        </div>
+          <label>Hasta</label>
+          <input type="date" value={fechaFin} onChange={e => setFechaFin(e.target.value)} />
+                </div>
 
         <div className="row">
           <label>Motivo</label>
@@ -184,31 +186,25 @@ export default function ParentExcuses() {
         <table className="pe-table">
           <thead>
             <tr>
-              <th>Fecha</th>
+              <th>Desde</th>
+              <th>Hasta</th>
               <th>Estado</th>
               <th>Motivo</th>
               <th>Archivo</th>
-              <th>Registrado por</th>
-              <th>Observaciones profesor</th>
+              <th>Profesor/Obs</th>
             </tr>
           </thead>
           <tbody>
-            {excuses.map(r => {
-              const s = getStatusLabel(r);
-                const registrador = r.registrador
-                ? `${r.registrador.nombre} ${r.registrador.apellido1 || ''} (${r.registrador.rol || ''})`
-                : (r.registrado_por ? (r.registrado_por === r.estudiante_id ? 'Estudiante' : `Padre (ID ${r.registrado_por})`) : '-');
-              return (
-                <tr key={r.id}>
-                  <td>{r.fecha}</td>
-                  <td><span className={`badge ${s.cls}`}>{s.text}</span></td>
-                  <td style={{ maxWidth: 320 }}>{r.justificacion || '-'}</td>
-                  <td>{r.archivo_url ? <a href={r.archivo_url} target="_blank" rel="noreferrer">Ver</a> : '-'}</td>
-                  <td>{registrador}</td>
-                  <td>{r.observaciones || '-'}</td>
-                </tr>
-              );
-            })}
+            {excuses.map(ex => (
+              <tr key={ex.id}>
+                <td>{ex.fecha_inicio}</td>
+                <td>{ex.fecha_fin}</td>
+                <td><span className={`badge ${ex.estado === 'aprobada' ? 'justificado' : ex.estado === 'rechazada' ? 'ausente' : 'tardanza'}`}>{ex.estado}</span></td>
+                <td style={{ maxWidth: 320 }}>{ex.motivo}</td>
+                <td>{ex.archivo_justificacion ? <a href={buildFileUrl(ex.archivo_justificacion)} target="_blank" rel="noreferrer">Ver</a> : '-'}</td>
+                <td className="muted">{ex.observaciones || '-'}</td>
+              </tr>
+            ))}
           </tbody>
         </table>
       )}

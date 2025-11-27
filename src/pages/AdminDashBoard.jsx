@@ -52,6 +52,7 @@ export default function AdminDashboard() {
           usuarios: Array.isArray(usuarios) ? usuarios.length : 0
         });
 
+      const preview = (Array.isArray(evs) ? evs : []).slice(0, 6);
         setEventos((evs || []).slice(0, 6));
         setResumen(resumenHoy || null);
       } catch (e) {
@@ -115,8 +116,13 @@ export default function AdminDashboard() {
                 <li key={ev.id} className="recent-item">
                   <div className="ri-left">
                     <strong className="ri-title">{ev.titulo}</strong>
-                    <div className="ri-meta">{ev.fecha} {ev.hora_inicio ? `• ${ev.hora_inicio}` : ""}</div>
+                    <div className="ri-meta">
+                      {ev.fecha} {ev.hora_inicio ? `• ${ev.hora_inicio}` : ""}{ev.hora_fin ? ` - ${ev.hora_fin}` : ""}
+                    </div>
                     {ev.descripcion ? <div className="ri-desc">{ev.descripcion}</div> : null}
+                    <div className="ri-meta">
+                      {ev.es_general ? "General" : (ev.curso?.nombre ? `Curso: ${ev.curso.nombre}` : (ev.curso_id ? `Curso ${ev.curso_id}` : "—"))}
+                    </div>
                   </div>
                   <div className="ri-badge">{ev.tipo || 'Actividad'}</div>
                 </li>

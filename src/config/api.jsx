@@ -113,6 +113,7 @@ export async function apiUnirseCurso(code) {
 
 
 
+
 // Tareas
 export async function apiCrearTarea(payload) {
   return request('/tareas', { method:'POST', body: payload });
@@ -185,9 +186,9 @@ export async function apiHistorialAsistencia(estudianteId, params={}) {
   const q = new URLSearchParams(params).toString();
   return request(`/asistencia/estudiante/${estudianteId}/historial${q?`?${q}`:''}`);
 }
-export async function apiReporteCurso(cursoId, params={}) {
+export async function apiReporteCurso(cursoId, params = {}) {
   const q = new URLSearchParams(params).toString();
-  return request(`/asistencia/curso/${cursoId}/reporte${q?`?${q}`:''}`);
+  return request(`/asistencia/curso/${cursoId}/reporte${q ? `?${q}` : ''}`);
 }
 export async function apiJustificarFalta(id, payload) {
   return request(`/asistencia/${id}/justificar`, { method:'PUT', body: payload });
@@ -223,22 +224,35 @@ export async function apiListarReportesEstudiante(params={}) {
   const q = new URLSearchParams(params).toString();
   return request(`/reportes/estudiante${q?`?${q}`:''}`);
 }
+
 export async function apiEditarReporteEstudiante(id, payload) {
   return request(`/reportes/estudiante/${id}`, { method:'PUT', body: payload });
+}
+
+
+
+export async function apiListarReportesCurso(params = {}) {
+  const q = new URLSearchParams(params).toString();
+  return request(`/reportes/curso${q ? `?${q}` : ''}`);
 }
 
 export async function apiCrearReporteCurso(payload) {
   return request('/reportes/curso', { method:'POST', body: payload });
 }
-export async function apiListarReportesCurso(params={}) {
-  const q = new URLSearchParams(params).toString();
-  return request(`/reportes/curso${q?`?${q}`:''}`);
-}
+
 export async function apiEditarReporteCurso(id, payload) {
   return request(`/reportes/curso/${id}`, { method:'PUT', body: payload });
 }
 
 // Padres
+
+export async function apiPadreDeEstudiante(estudianteId) {
+  return request(`/padres/de-estudiante/${estudianteId}`);
+}
+
+export async function apiDesasignarPadre(payload) {
+  return request('/padres/desasignar', { method:'DELETE', body: payload });
+}
 export async function apiCrearInvitacionPadre(payload) {
   return request('/padres/invitaciones', { method:'POST', body: payload });
 }
@@ -302,6 +316,11 @@ export async function apiEnviarComunicacion(payload) {
   return request('/comunicaciones/enviar', { method: 'POST', body: payload });
 }
 
+export async function apiListComunicacionesEnviadas(params = {}) {
+  const q = new URLSearchParams(params).toString();
+  return request(`/comunicaciones/enviadas${q ? `?${q}` : ''}`);
+}
+
 export async function apiSolicitarJustificacion(payload, file) {
   if (!file) return request('/asistencia/solicitar', { method: 'POST', body: payload });
 
@@ -350,3 +369,43 @@ export async function apiAdminUpdateUser(id, payload) {
   return request(`/auth/admin/usuarios/${id}`, { method: 'PUT', body: payload });
 }
 
+export async function apiAdminDeleteUser(id) {
+  return request(`/auth/admin/usuarios/${id}`, { method: 'DELETE' });
+}
+
+export async function apiMisMaterias() {
+  return request('/asistencia/materias/mias');
+}
+export async function apiAsistenciaPorMateriaFecha(materiaId, fecha) {
+  return request(`/asistencia/materia/${materiaId}/fecha/${fecha}`);
+}
+export async function apiTomarAsistenciaMateria(payload) {
+  return request('/asistencia/tomar', { method:'POST', body: payload });
+}
+
+export async function apiCrearExcusa(payload, file) {
+  const token = localStorage.getItem('token');
+  const url = `${API_URL}/asistencia/excusas`;
+  const fd = new FormData();
+  Object.entries(payload).forEach(([k,v]) => {
+    if (v !== undefined && v !== null) fd.append(k, v);
+  });
+  if (file) fd.append('archivo_justificacion', file);
+  const res = await fetch(url, { method:'POST', headers: { Authorization: `Bearer ${token}` }, body: fd });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Error al crear excusa');
+  return data;
+}
+
+export async function apiListExcusas(params = {}) {
+  const q = new URLSearchParams(params).toString();
+  return request(`/asistencia/excusas${q ? `?${q}` : ''}`);
+}
+
+export async function apiActualizarExcusaEstado(id, body) {
+  return request(`/asistencia/excusas/${id}/estado`, { method:'PUT', body });
+}
+
+export async function apiRendimientoCurso(cursoId) {
+  return request(`/reportes/curso/${cursoId}/rendimiento`);
+}

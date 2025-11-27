@@ -1,11 +1,17 @@
 import React, { useEffect, useState } from "react";
 import { apiListEventos, apiCrearEvento, apiEditarEvento, apiEliminarEvento, apiListCursos } from "../config/api";
-import "./AdminCourses.css"; // usa estilos de cursos/reports para consistencia
+import "./AdminCourses.css"; // estilos existentes
 
 export default function AdminCalendar() {
   const [eventos, setEventos] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [feedback, setFeedback] = useState(null);
   const [editId, setEditId] = useState(null);
+
+  const [cursos, setCursos] = useState([]);
+  const [cursoFiltro, setCursoFiltro] = useState(""); // ver generales y/o curso específico
+  const [tipoFiltro, setTipoFiltro] = useState("");
+
   const [form, setForm] = useState({
     titulo: "",
     descripcion: "",
@@ -16,23 +22,28 @@ export default function AdminCalendar() {
     es_general: true,
     curso_id: ""
   });
-  const [cursos, setCursos] = useState([]);
 
   async function load() {
     setLoading(true);
+    setFeedback(null);
     try {
-      const ev = await apiListEventos();
-      setEventos(ev || []);
-      const cs = await apiListCursos().catch(()=>[]);
+      const params = {};
+      if (cursoFiltro !== "") params.curso_id = cursoFiltro; // vacío => backend devuelve generales+todos según rol admin
+      if (tipoFiltro) params.tipo = tipoFiltro;
+      const ev = await apiListEventos(params);
+      setEventos(Array.isArray(ev) ? ev : []);
+      const cs = await apiListCursos().catch(() => []);
       setCursos(Array.isArray(cs) ? cs : []);
     } catch (e) {
-      alert(e.message);
+      setFeedback({ type: "error", text: e.message || "Error cargando eventos" });
+      setEventos([]);
     } finally {
       setLoading(false);
     }
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); /* eslint-disable-line */ }, []);
+  useEffect(() => { load(); /* eslint-disable-line */ }, [cursoFiltro, tipoFiltro]);
 
   function resetForm() {
     setEditId(null);
@@ -46,32 +57,38 @@ export default function AdminCalendar() {
       es_general: true,
       curso_id: ""
     });
+    setFeedback(null);
   }
 
   async function handleSubmit(e) {
     e?.preventDefault();
+    setFeedback(null);
+    if (!form.titulo || !form.fecha) return setFeedback({ type: "error", text: "Título y fecha son obligatorios" });
+
+    // Si es_general = true, enviar curso_id = null
+    const payload = {
+      titulo: form.titulo,
+      descripcion: form.descripcion || null,
+      fecha: form.fecha,
+      hora_inicio: form.hora_inicio || null,
+      hora_fin: form.hora_fin || null,
+      tipo: form.tipo || "actividad",
+      es_general: !!form.es_general,
+      curso_id: form.es_general ? null : (form.curso_id ? Number(form.curso_id) : null)
+    };
+
     try {
-      const payload = {
-        titulo: form.titulo,
-        descripcion: form.descripcion || null,
-        fecha: form.fecha,
-        hora_inicio: form.hora_inicio || null,
-        hora_fin: form.hora_fin || null,
-        tipo: form.tipo,
-        es_general: !!form.es_general,
-        curso_id: form.es_general ? null : (form.curso_id || null)
-      };
       if (editId) {
         await apiEditarEvento(editId, payload);
-        alert("Evento actualizado");
+        setFeedback({ type: "success", text: "Evento actualizado" });
       } else {
         await apiCrearEvento(payload);
-        alert("Evento creado");
+        setFeedback({ type: "success", text: "Evento creado" });
       }
       resetForm();
-      load();
+      await load();
     } catch (err) {
-      alert(err.message);
+      setFeedback({ type: "error", text: err.message || "Error guardando evento" });
     }
   }
 
@@ -80,11 +97,11 @@ export default function AdminCalendar() {
     setForm({
       titulo: ev.titulo || "",
       descripcion: ev.descripcion || "",
-      fecha: ev.fecha ? ev.fecha.split("T")[0] : new Date().toISOString().slice(0, 10),
+      fecha: ev.fecha ? String(ev.fecha).slice(0, 10) : new Date().toISOString().slice(0, 10),
       hora_inicio: ev.hora_inicio || "",
       hora_fin: ev.hora_fin || "",
       tipo: ev.tipo || "actividad",
-      es_general: !!ev.es_general,
+      es_general: !!ev.es_general || ev.curso_id === null,
       curso_id: ev.curso_id || ""
     });
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -92,19 +109,20 @@ export default function AdminCalendar() {
 
   async function handleDelete(id) {
     if (!confirm("Eliminar evento?")) return;
+    setFeedback(null);
     try {
       await apiEliminarEvento(id);
-      alert("Evento eliminado");
+      setFeedback({ type: "success", text: "Evento eliminado" });
       load();
     } catch (e) {
-      alert(e.message);
+      setFeedback({ type: "error", text: e.message || "No se pudo eliminar" });
     }
   }
 
   return (
     <div className="admin-courses">
       <div className="header">
-        <h2>Calendario / Eventos</h2>
+        <h2>Calendario / Eventos (Admin)</h2>
       </div>
 
       <section className="course-form">
@@ -119,23 +137,51 @@ export default function AdminCalendar() {
             <option value="reunion">Reunión</option>
             <option value="festivo">Festivo</option>
           </select>
+
           <label style={{ display: "flex", gap: 6, alignItems: "center" }}>
-            <input type="checkbox" checked={form.es_general} onChange={e => setForm({ ...form, es_general: e.target.checked })} />
-            Es general
+            <input
+              type="checkbox"
+              checked={form.es_general}
+              onChange={e => {
+                const val = e.target.checked;
+                setForm({ ...form, es_general: val, curso_id: val ? "" : form.curso_id });
+              }}
+            />
+            Evento general (visible a todos)
           </label>
+
           {!form.es_general && (
-            <select value={form.curso_id} onChange={e => setForm({ ...form, curso_id: e.target.value })}>
+            <select value={form.curso_id} onChange={e => setForm({ ...form, curso_id: e.target.value })} required>
               <option value="">Selecciona curso</option>
-              {cursos.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+              {cursos.map(c => <option key={c.id} value={c.id}>{c.nombre} ({c.grado}-{c.grupo})</option>)}
             </select>
           )}
+
           <input placeholder="Descripción (opcional)" value={form.descripcion} onChange={e => setForm({ ...form, descripcion: e.target.value })} style={{ minWidth: 220 }} />
           <div style={{ display: "flex", gap: 8 }}>
             <button type="submit">{editId ? "Actualizar" : "Crear"}</button>
             <button type="button" onClick={resetForm}>Limpiar</button>
           </div>
         </form>
+        {feedback && <div className={`feedback ${feedback.type}`}>{feedback.text}</div>}
       </section>
+
+      {/* Filtros de listado */}
+      <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 10 }}>
+        <select value={cursoFiltro} onChange={e => setCursoFiltro(e.target.value)}>
+          <option value="">Ver generales y todos</option>
+          <option value="null">Solo generales</option>
+          {cursos.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+        </select>
+        <select value={tipoFiltro} onChange={e => setTipoFiltro(e.target.value)}>
+          <option value="">Todos los tipos</option>
+          <option value="actividad">Actividad</option>
+          <option value="examen">Examen</option>
+          <option value="reunion">Reunión</option>
+          <option value="festivo">Festivo</option>
+        </select>
+        <button onClick={load}>Refrescar</button>
+      </div>
 
       <section className="course-list" style={{ marginTop: 12 }}>
         <h3 style={{ marginTop: 0 }}>Eventos</h3>
@@ -152,7 +198,9 @@ export default function AdminCalendar() {
                 </div>
                 <div className="meta">
                   <div>{ev.fecha} {ev.hora_inicio ? `• ${ev.hora_inicio}` : ""}{ev.hora_fin ? ` - ${ev.hora_fin}` : ""}</div>
-                  <div style={{ color: "#6b7280", fontSize: 13 }}>{ev.tipo} • {ev.es_general ? "General" : (ev.curso?.nombre || `Curso ${ev.curso_id}`)}</div>
+                  <div style={{ color: "#6b7280", fontSize: 13 }}>
+                    {ev.tipo} • {ev.es_general ? "General" : (ev.curso?.nombre || `Curso ${ev.curso_id || "—"}`)}
+                  </div>
                   {ev.descripcion ? <div style={{ marginTop: 6 }}>{ev.descripcion}</div> : null}
                 </div>
               </div>

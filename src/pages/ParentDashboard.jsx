@@ -8,27 +8,31 @@ export default function ParentDashboard() {
   const { user, loading: authLoading } = useContext(AuthContext);
   const [children, setChildren] = useState([]);
   const [selectedChildId, setSelectedChildId] = useState(null);
+
   const [tareas, setTareas] = useState([]);
   const [asistencia, setAsistencia] = useState(null);
   const [eventos, setEventos] = useState([]);
+
   const [loading, setLoading] = useState(true);
+  const [loadingChild, setLoadingChild] = useState(false);
   const [error, setError] = useState(null);
 
+  // Cargar hijos desde matrículas
   useEffect(() => {
     async function loadChildren() {
       setLoading(true);
+      setError(null);
       try {
-        // la ruta /matriculas devolverá las matrículas del/los hijos para rol 'padre'
         const mats = await apiListMatriculas().catch(() => []);
-        // normalizar lista de estudiantes desde matriculas
-        const kidsMap = new Map();
+        const map = new Map();
         (Array.isArray(mats) ? mats : []).forEach(m => {
-          const est = m.estudiante || (m.estudiante_id ? { id: m.estudiante_id, nombre: m.estudiante_nombre } : null);
+          const est = m.estudiante || (m.estudiante_id ? { id: m.estudiante_id, nombre: m.estudiante_nombre, apellido1: m.estudiante_apellido1 } : null);
           if (est && est.id) {
-            if (!kidsMap.has(est.id)) kidsMap.set(est.id, { id: est.id, nombre: `${est.nombre || ''} ${est.apellido1 || ''}`.trim() || `Alumno ${est.id}` });
+            const nombre = `${est.nombre || ""} ${est.apellido1 || ""}`.trim() || `Alumno ${est.id}`;
+            if (!map.has(est.id)) map.set(est.id, { id: est.id, nombre });
           }
         });
-        const kids = Array.from(kidsMap.values());
+        const kids = Array.from(map.values());
         setChildren(kids);
         if (kids.length > 0) setSelectedChildId(kids[0].id);
       } catch (e) {
@@ -42,39 +46,43 @@ export default function ParentDashboard() {
     if (!authLoading) loadChildren();
   }, [authLoading]);
 
+  // Cargar datos del hijo seleccionado
   useEffect(() => {
     if (!selectedChildId) return;
     let mounted = true;
     async function loadChildData() {
-      setLoading(true);
+      setLoadingChild(true);
       setError(null);
       try {
         const [tareasRes, hist, evs] = await Promise.all([
-          apiTareasEstudiante(selectedChildId).catch(() => []),
-          apiHistorialAsistencia(selectedChildId).catch(() => null),
+          apiTareasEstudiante(Number(selectedChildId)).catch(() => []),
+          apiHistorialAsistencia(Number(selectedChildId)).catch(() => null),
           apiListEventos().catch(() => [])
         ]);
         if (!mounted) return;
-        setTareas(Array.isArray(tareasRes) ? tareasRes : (tareasRes?.tareas || []));
+        const tareasList = Array.isArray(tareasRes) ? tareasRes : (tareasRes?.tareas || []);
+        setTareas(tareasList);
         setAsistencia(hist?.estadisticas || hist || null);
-        // filtrar eventos relevantes (opcional)
-        setEventos((evs || []).slice(0,6));
+        // Previsualizar eventos generales y primeros 6
+        setEventos((evs || []).slice(0, 6));
       } catch (e) {
         console.error("loadChildData:", e);
         if (mounted) setError("Error cargando datos del estudiante");
       } finally {
-        if (mounted) setLoading(false);
+        if (mounted) setLoadingChild(false);
       }
     }
     loadChildData();
     return () => { mounted = false; };
   }, [selectedChildId]);
 
-  // métricas simples
+  // métricas
   const tareasTotales = tareas.length;
   const tareasEntregadas = tareas.filter(t => Array.isArray(t.entregas) && t.entregas.length > 0).length;
-  const tareasPendientes = tareasTotales - tareasEntregadas;
+  const tareasPendientes = Math.max(0, tareasTotales - tareasEntregadas);
   const asistenciaPct = asistencia ? (Number(asistencia.porcentaje_asistencia) || 0) : null;
+
+  if (authLoading || loading) return <div className="empty">Cargando panel...</div>;
 
   return (
     <div className="parent-dashboard">
@@ -85,18 +93,15 @@ export default function ParentDashboard() {
         <label>Seleccionar hijo:</label>
         <select value={selectedChildId || ""} onChange={e => setSelectedChildId(Number(e.target.value))}>
           <option value="">— Selecciona hijo —</option>
-          {children.map(c => <option key={c.id} value={c.id}>{c.nombre || `Alumno ${c.id}`}</option>)}
+          {children.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
         </select>
-        <button onClick={() => { if (selectedChildId) { setSelectedChildId(selectedChildId); } }} className="btn">Refrescar</button>
+        <button onClick={() => { if (selectedChildId) setSelectedChildId(selectedChildId); }} className="btn">Refrescar</button>
       </div>
 
-      {loading ? (
-        <div className="empty">Cargando datos...</div>
-      ) : error ? (
-        <div className="empty error">{error}</div>
-      ) : !selectedChildId ? (
-        <div className="empty">No se detectaron hijos vinculados a tu cuenta.</div>
-      ) : (
+      {error && <div className="empty error">{error}</div>}
+      {(!selectedChildId && !loadingChild) && <div className="empty">No se detectaron hijos vinculados a tu cuenta.</div>}
+
+      {selectedChildId && (
         <>
           <div className="summary-grid">
             <div className="summary-card">
@@ -124,16 +129,22 @@ export default function ParentDashboard() {
           <div className="panels">
             <section className="panel recent-tasks">
               <h3>Tareas recientes</h3>
-              {tareas.length === 0 ? <div className="empty">Sin tareas</div> : (
+              {loadingChild ? (
+                <div className="empty">Cargando tareas...</div>
+              ) : tareas.length === 0 ? (
+                <div className="empty">Sin tareas</div>
+              ) : (
                 <ul>
-                  {tareas.slice(0,6).map(t => (
+                  {tareas.slice(0, 6).map(t => (
                     <li key={t.id} className="task-item">
                       <div className="task-left">
                         <strong>{t.titulo}</strong>
-                        <div className="muted small">{t.curso?.nombre || `Curso ${t.curso_id || "—"}` } · Vence: {t.fecha_entrega}</div>
+                        <div className="muted small">
+                          {t.curso?.nombre || `Curso ${t.curso_id || "—"}`} · Vence: {t.fecha_entrega}
+                        </div>
                       </div>
-                      <div className={`tag ${ (Array.isArray(t.entregas) && t.entregas.length>0) ? 'done':'pending' }`}>
-                        {(Array.isArray(t.entregas) && t.entregas.length>0) ? 'Entregada' : 'Pendiente'}
+                      <div className={`tag ${(Array.isArray(t.entregas) && t.entregas.length > 0) ? "done" : "pending"}`}>
+                        {(Array.isArray(t.entregas) && t.entregas.length > 0) ? "Entregada" : "Pendiente"}
                       </div>
                     </li>
                   ))}
@@ -143,7 +154,11 @@ export default function ParentDashboard() {
 
             <aside className="panel upcoming">
               <h3>Actividad reciente</h3>
-              {eventos.length === 0 ? <div className="empty">Sin actividad</div> : (
+              {loadingChild ? (
+                <div className="empty">Cargando actividad...</div>
+              ) : eventos.length === 0 ? (
+                <div className="empty">Sin actividad</div>
+              ) : (
                 <div className="events-list">
                   {eventos.map(ev => (
                     <div key={ev.id} className="event">

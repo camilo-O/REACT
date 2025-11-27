@@ -35,3 +35,40 @@
   .layout { grid-template-columns: 1fr; }
   .header .actions input { min-width: 180px; }
 }
+
+/* Modal asignación padre-estudiante */
+
+.assign-overlay {
+  position: fixed; inset: 0;
+  background: rgba(2,6,23,0.55);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1200;
+}
+.assign-modal {
+  width: 640px; max-width: 95%;
+  background: #fff; border-radius: 12px;
+  box-shadow: 0 16px 44px rgba(2,6,23,0.35);
+  overflow: hidden; border: 1px solid #eef6ff;
+}
+.assign-header {
+  display:flex; justify-content:space-between; align-items:center;
+  padding: 12px 16px; border-bottom: 1px solid #eef6ff;
+}
+.assign-title { margin:0; font-size: 1.05rem; color:#06203d; }
+.assign-close { background:#fff; border:1px solid #e5e7eb; border-radius:8px; padding:6px 10px; cursor:pointer; }
+
+.assign-body { padding: 14px 16px; display:flex; flex-direction:column; gap:10px; }
+.assign-row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+.assign-row label { font-weight:600; color:#0b1d4a; min-width: 160px; }
+.assign-input { flex:1; min-width: 220px; padding:8px 10px; border:1px solid #e5e7eb; border-radius:8px; background:#fff; }
+.assign-check { display:flex; align-items:center; gap:8px; color:#0b1d4a; }
+
+.assign-actions { display:flex; gap:8px; justify-content:flex-end; padding: 12px 16px; border-top:1px solid #eef6ff; }
+.am-btn { padding:8px 12px; border-radius:8px; cursor:pointer; font-weight:600; }
+.am-primary { background: linear-gradient(180deg,#0d335b,#134a84); color:#fff; border:none; }
+.am-ghost { background:#fff; color:#0b1d4a; border:1px solid #e6eef9; }
+.am-danger { background:#fff5f5; color:#b91c1c; border:1px solid #fee2e2; }
+
+.assign-feedback { margin-top:6px; padding:8px 10px; border-radius:8px; font-weight:700; }
+.assign-feedback.success { background:#ecfdf5; color:#065f46; }
+.assign-feedback.error { background:#fff1f2; color:#9f1239; }

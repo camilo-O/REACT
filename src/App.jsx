@@ -1,11 +1,9 @@
 import { useState, useEffect, useRef, useContext } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import AuthForm from "./components/AuthForm";
 import coopeLogo from "./assets/coope.png";
 import "./App.css";
 import { apiLogin } from "./config/api";
 import { AuthContext } from "./context/AuthContext";
-
 
 const ROLE_PATH = {
   estudiante: "/student",
@@ -18,32 +16,45 @@ const ROLE_PATH = {
 };
 
 export default function App() {
-  const [mode, setMode] = useState("login");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
   const redirectedRef = useRef(false);
   const { reload: reloadAuth } = useContext(AuthContext);
 
+  // Redirigir si ya autenticado
   useEffect(() => {
-    if (location.pathname !== "/") return; // solo en login
+    if (location.pathname !== "/login" && location.pathname !== "/") return;
     if (redirectedRef.current) return;
     const token = localStorage.getItem("token");
     const rol = localStorage.getItem("rol");
     if (token && rol) {
       redirectedRef.current = true;
-      navigate(ROLE_PATH[rol] || "/");
+      navigate(ROLE_PATH[rol] || "/login");
     }
   }, [location.pathname, navigate]);
 
-  const handleLogin = async (username, password) => {
-    try {
-      const data = await apiLogin(username, password);
-      await reloadAuth();
-      navigate(ROLE_PATH[data.user.rol] || "/");
-    } catch (e) {
-      alert(e.message);
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setError(null);
+    if (!username || !password) {
+      setError("Usuario y contraseña son requeridos");
+      return;
     }
-  };
+    setLoading(true);
+    try {
+      const data = await apiLogin(username.trim(), password);
+      await reloadAuth();
+      navigate(ROLE_PATH[data.user.rol] || "/login");
+    } catch (e) {
+      setError(e.message || "Error de autenticación");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <div className="login-page">
@@ -54,26 +65,26 @@ export default function App() {
           <p>Sistema de Gestión Estudiantil</p>
         </div>
 
-        <div className="login-tabs">
-          <button onClick={() => setMode("login")} className={mode === "login" ? "active" : ""}>
-            Iniciar sesión
-          </button>
-          <button onClick={() => setMode("register")} className={mode === "register" ? "active" : ""}>
-            Registrarse
-          </button>
-        </div>
+        <form className="login-form" onSubmit={handleSubmit}>
+          <input
+            placeholder="Usuario"
+            autoComplete="username"
+            value={username}
+            onChange={e => setUsername(e.target.value)}
+          />
+          <input
+            type="password"
+            placeholder="Contraseña"
+            autoComplete="current-password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+          />
+          <button type="submit" disabled={loading}>{loading ? "Ingresando..." : "Iniciar sesión"}</button>
+          {error && <div className="login-feedback error">{error}</div>}
+        </form>
 
-<AuthForm
-  mode={mode}
-  onLogin={handleLogin}
-  onSuccess={(rol) => {
-    localStorage.setItem("rol", rol);
-    navigate(ROLE_PATH[rol] || "/");
-  }}
-/>
-
-        <footer>
-          © {new Date().getFullYear()} Colegio Cooperativo Garzón — Todos los derechos reservados.
+        <footer className="login-footer">
+          © {new Date().getFullYear()} Colegio Cooperativo Garzón
         </footer>
       </div>
     </div>

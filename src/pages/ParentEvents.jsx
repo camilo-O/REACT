@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import React, { useEffect, useState, useContext } from "react";
 import "./ParentEvents.css";
 import { AuthContext } from "../context/AuthContext";
