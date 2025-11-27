@@ -24,3 +24,4 @@
 .empty { padding:12px; text-align:center; color:#6b7280; border-radius:8px; background:#fff; border:1px dashed #e6eef9; }
 
 @media (max-width:900px) { .te-form .row { flex-direction:column; align-items:stretch; } }
+.tag.danger { background:#fff1f2; color:#9f1239; }

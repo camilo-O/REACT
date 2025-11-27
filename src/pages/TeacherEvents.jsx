@@ -2,7 +2,7 @@
 import React, { useEffect, useState, useContext } from "react";
 import "./TeacherEvents.css";
 import { AuthContext } from "../context/AuthContext";
-import { apiListCursos, apiListEventos, apiCrearEvento, apiEditarEvento, apiEliminarEvento } from "../config/api";
+import { apiCancelarEvento, apiListCursos, apiListEventos, apiCrearEvento, apiEditarEvento, apiEliminarEvento } from "../config/api";
 
 export default function TeacherEvents() {
   const { user, loading: authLoading } = useContext(AuthContext);
@@ -36,6 +36,17 @@ export default function TeacherEvents() {
     loadEventos();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cursoId]);
+
+   async function cancelar(ev) {
+   if (!confirm(`Cancelar evento "${ev.titulo}"?`)) return;
+   try {
+     await apiCancelarEvento(ev.id);
+     await loadEventos();
+     setFeedback({ type:'success', text:'Evento cancelado' });
+   } catch (e) {
+     setFeedback({ type:'error', text: e.message || 'No se pudo cancelar' });
+   }
+ }
 
   async function loadEventos() {
     setLoading(true); setFeedback(null);
@@ -153,6 +164,9 @@ export default function TeacherEvents() {
                   <td>{ev.tipo}</td>
                   <td>{ev.curso?.nombre || (ev.curso_id ? `Curso ${ev.curso_id}` : 'General')}</td>
                   <td><button className="btn ghost" onClick={() => eliminar(ev)}>Eliminar</button></td>
+                   <button className="btn ghost" onClick={() => cancelar(ev)} disabled={!ev.curso_id || ev.estado === 'cancelado'}>
+                     Cancelar
+                   </button>
                 </tr>
               ))}
             </tbody>

@@ -74,3 +74,25 @@
 .view-btn:hover {
   background-color: #1d4ed8;
 }
+
+.action-btn {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #e6eef9;
+  background: #fff;
+  color: #0b1d4a;
+  cursor: pointer;
+  font-weight: 600;
+}
+.action-btn:hover { border-color:#cfe0f7; box-shadow:0 3px 10px rgba(13,51,91,0.08); }
+
+.action-btn.primary {
+  background: linear-gradient(180deg,#0d335b,#134a84);
+  color: #fff;
+  border: none;
+}
+.action-btn.warning { background:#fffbeb; color:#92400e; border-color:#fef3c7; }
+.action-btn.danger { background:#fff5f5; color:#b91c1c; border-color:#fee2e2; }
+.action-btn.ghost  { background:transparent; color:#0b1d4a; border:1px solid #e6eef9; }
+
+.actions { display:flex; gap:6px; flex-wrap:wrap; }

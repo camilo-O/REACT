@@ -43,3 +43,4 @@ button.danger { background:#fff5f5; border:1px solid #fee2e2; color:#b91c1c; pad
   .course-form { gap:6px; padding:10px; }
   .header-row { flex-direction:column; align-items:flex-start; gap:10px; }
 }
+.tag.danger { background:#fff1f2; color:#9f1239; }

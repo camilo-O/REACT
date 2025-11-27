@@ -60,6 +60,17 @@ export default function AdminCalendar() {
     setFeedback(null);
   }
 
+   async function handleCancel(ev) {
+   if (!confirm(`Cancelar evento "${ev.titulo}"?`)) return;
+   try {
+     await apiCancelarEvento(ev.id);
+     await load();
+     setFeedback({ type:'success', text:'Evento cancelado' });
+  } catch (e) {
+     setFeedback({ type:'error', text: e.message || 'No se pudo cancelar' });
+   }
+ }
+
   async function handleSubmit(e) {
     e?.preventDefault();
     setFeedback(null);
@@ -192,7 +203,9 @@ export default function AdminCalendar() {
                 <div className="title">
                   <strong>{ev.titulo}</strong>
                   <div style={{ display: "flex", gap: 8 }}>
-                    <button onClick={() => startEdit(ev)}>Editar</button>
+                   {ev.estado === 'cancelado' && <span className="tag danger">Cancelado</span>}
+                    <button onClick={() => startEdit(ev)} disabled={ev.estado === 'cancelado'}>Editar</button>
+                   <button onClick={() => handleCancel(ev)} className="danger" disabled={ev.estado === 'cancelado'}>Cancelar</button>
                     <button className="danger" onClick={() => handleDelete(ev.id)}>Eliminar</button>
                   </div>
                 </div>

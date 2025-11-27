@@ -1,7 +1,10 @@
+/* eslint-disable no-unused-vars */
 import React, { useEffect, useState, useContext } from "react";
-import { apiListCursos, apiCurso } from "../config/api";
+import { apiListCursos, apiCurso, apiListComunicacionesEnviadas, apiEnviarComunicacion, apiEnviarCitacion } from "../config/api";
 import { AuthContext } from "../context/AuthContext";
 import "./TeacherStudents.css";
+import { useNavigate } from "react-router-dom";
+
 
 export default function TeacherStudents() {
   const { user, loading: authLoading } = useContext(AuthContext);
@@ -11,6 +14,7 @@ export default function TeacherStudents() {
   // mapa cursoId -> estudiantes[]
   const [studentsMap, setStudentsMap] = useState({});
   const [expanded, setExpanded] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     async function load() {
@@ -34,6 +38,44 @@ export default function TeacherStudents() {
     if (!authLoading) load();
   }, [user, authLoading]);
 
+  async function enviarMensajePadres(est) {
+    const msg = prompt(`Mensaje para los padres de ${est.nombre} ${est.apellido1 || ""}`, "");
+    if (!msg) return;
+    try {
+      await apiEnviarComunicacion({
+        estudiante_id: Number(est.id),
+        message: msg,
+        categoria: "Aviso profesor",
+        enviar_a: "padre"
+      });
+      alert("Comunicación enviada a los padres.");
+    } catch (e) {
+      alert(e.message || "Error al enviar comunicación");
+    }
+  }
+
+  async function enviarCitacion(curso, est) {
+    const fecha = prompt("Fecha (YYYY-MM-DD)", new Date().toISOString().slice(0,10));
+    const hora = prompt("Hora (HH:MM)", "16:00");
+    const mensaje = prompt("Motivo/cita", "Reunión con acudiente");
+    if (!mensaje) return;
+    try {
+      await apiEnviarCitacion({
+        recipientType: "padre",
+        estudiante_id: Number(est.id),
+        message: mensaje,
+        fecha,
+        hora,
+        location: "Sala de coordinación",
+        curso_id: Number(curso.id)
+      });
+      alert("Citación enviada.");
+    } catch (e) {
+      alert(e.message || "Error al enviar citación");
+    }
+  }
+
+
   async function toggleCurso(cursoId) {
     if (expanded === cursoId) {
       setExpanded(null);
@@ -52,6 +94,21 @@ export default function TeacherStudents() {
       setStudentsMap(prev => ({ ...prev, [cursoId]: [] }));
     }
   }
+
+   // Acciones
+  function verPerfil(est) {
+    navigate(`/teacher/students?view=${est.id}`);
+    alert(JSON.stringify(est, null, 2));
+  }
+
+  function verTareas(est) {
+    navigate(`/student/tasks`, { state: { estudianteId: est.id } });
+  }
+
+  function verAsistencia(curso, est) {
+    navigate(`/teacher/attendance-detail`, { state: { estudianteId: est.id, cursoId: curso.id } });
+  }
+
 
   function getInitials(name, apellido) {
     if (!name) return "CC";
@@ -85,7 +142,7 @@ export default function TeacherStudents() {
                 </div>
               </div>
 
-              {expanded === c.id && (
+ {expanded === c.id && (
                 <div className="students-section">
                   {(!studentsMap[c.id] || studentsMap[c.id].length === 0) ? (
                     <div className="empty">No hay estudiantes matriculados en este curso.</div>
@@ -95,7 +152,6 @@ export default function TeacherStudents() {
                         <tr>
                           <th>Alumno</th>
                           <th>Email</th>
-                          <th>Teléfono</th>
                           <th>Acciones</th>
                         </tr>
                       </thead>
@@ -112,10 +168,12 @@ export default function TeacherStudents() {
                               </div>
                             </td>
                             <td>{s.email || s.username || "—"}</td>
-                            <td>{s.telefono || "—"}</td>
-                            <td>
-                              <button onClick={() => alert(`Ver perfil ${s.id}`)}>Ver perfil</button>
-                              <button onClick={() => alert(`Enviar mensaje a ${s.id}`)}>Mensaje</button>
+                            <td style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
+                              <button className="action-btn ghost" onClick={() => verPerfil(s)}>Perfil</button>
+                              <button className="action-btn primary" onClick={() => verTareas(s)}>Tareas</button>
+                              <button className="action-btn" onClick={() => verAsistencia(c, s)}>Asistencia</button>
+                              <button className="action-btn warning" onClick={() => enviarMensajePadres(s)}>Comunicar padres</button>
+                              <button className="action-btn danger" onClick={() => enviarCitacion(c, s)}>Citación</button>
                             </td>
                           </tr>
                         ))}

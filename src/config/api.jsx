@@ -304,6 +304,10 @@ export async function apiListProfesores(params = {}) {
   return request(`/auth/admin/usuarios${q ? `?${q}` : ''}`);
 }
 
+export async function apiCancelarEvento(id) {
+  return request(`/eventos/${id}/cancelar`, { method:'POST' });
+}
+
 export async function apiListCitaciones() {
   return request('/citaciones');
 }
