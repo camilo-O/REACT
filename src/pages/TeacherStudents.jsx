@@ -11,10 +11,11 @@ export default function TeacherStudents() {
   const [cursos, setCursos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  // mapa cursoId -> estudiantes[]
   const [studentsMap, setStudentsMap] = useState({});
   const [expanded, setExpanded] = useState(null);
   const navigate = useNavigate();
+    const [profileOpen, setProfileOpen] = useState(false);
+  const [profileStudent, setProfileStudent] = useState(null);
 
   useEffect(() => {
     async function load() {
@@ -37,6 +38,12 @@ export default function TeacherStudents() {
     }
     if (!authLoading) load();
   }, [user, authLoading]);
+
+ function verPerfil(est) {
+  if (!est) return;
+  setProfileStudent(est);
+  setProfileOpen(true);
+}
 
   async function enviarMensajePadres(est) {
     const msg = prompt(`Mensaje para los padres de ${est.nombre} ${est.apellido1 || ""}`, "");
@@ -96,10 +103,7 @@ export default function TeacherStudents() {
   }
 
    // Acciones
-  function verPerfil(est) {
-    navigate(`/teacher/students?view=${est.id}`);
-    alert(JSON.stringify(est, null, 2));
-  }
+
 
   function verTareas(est) {
     navigate(`/student/tasks`, { state: { estudianteId: est.id } });
@@ -123,6 +127,28 @@ export default function TeacherStudents() {
     <div className="teacher-students">
       <h2 className="title">Mis Estudiantes</h2>
       <p className="subtitle">Selecciona un curso para ver los estudiantes inscritos.</p>
+
+{profileOpen && profileStudent && (
+  <div className="ts-modal-overlay">
+    <div className="ts-modal">
+      <div className="ts-modal-header">
+        <h3>Perfil del estudiante</h3>
+        <button className="ts-close" onClick={()=>{ setProfileOpen(false); setProfileStudent(null); }}>Cerrar</button>
+      </div>
+      <div className="ts-modal-body">
+        <div className="ts-profile-row"><strong>Nombre:</strong> {profileStudent.nombre} {profileStudent.apellido1 || ''}</div>
+        <div className="ts-profile-row"><strong>Identificación:</strong> {profileStudent.numero_identificacion || '—'}</div>
+        <div className="ts-profile-row"><strong>Correo:</strong> {profileStudent.email || '—'}</div>
+        <div className="ts-profile-row"><strong>Teléfono:</strong> {profileStudent.telefono || '—'}</div>
+        <div className="ts-profile-row"><strong>Fecha nacimiento:</strong> {profileStudent.fecha_nacimiento || '—'}</div>
+        <div className="ts-profile-row"><strong>Dirección:</strong> {profileStudent.direccion || '—'}</div>
+      </div>
+      <div className="ts-modal-footer">
+        <button className="ts-close" onClick={()=>{ setProfileOpen(false); setProfileStudent(null); }}>Cerrar</button>
+      </div>
+    </div>
+  </div>
+)}
 
       {cursos.length === 0 ? (
         <div className="empty">No tienes cursos asignados.</div>
