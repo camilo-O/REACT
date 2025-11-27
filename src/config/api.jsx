@@ -300,8 +300,8 @@ export async function apiAsignarMateriaCurso(materiaId, curso_id) {
   return request(`/materias/${materiaId}/asignar-curso`, { method: 'POST', body: { curso_id } });
 }
 export async function apiListProfesores(params = {}) {
-  const q = new URLSearchParams({ rol: 'profesor', ...params }).toString();
-  return request(`/auth/admin/usuarios?${q}`);
+  const q = new URLSearchParams({ role: 'profesor', activo: 'true', ...(params || {}) }).toString();
+  return request(`/auth/admin/usuarios${q ? `?${q}` : ''}`);
 }
 
 export async function apiListCitaciones() {

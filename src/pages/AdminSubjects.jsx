@@ -1,13 +1,6 @@
 import React, { useEffect, useState } from "react";
-import {
-  apiListMaterias,
-  apiCrearMateria,
-  apiEditarMateria,
-  apiAsignarProfesorMateria,
-  apiAsignarMateriaCurso,
-  apiListCursos,
-  apiListProfesores
-} from "../config/api";
+import { apiListMaterias, apiListCursos, apiListProfesores, apiCrearMateria, apiAsignarProfesorMateria, apiAsignarMateriaCurso, apiEditarMateria } from "../config/api";
+
 import "./AdminSubjects.css";
 
 export default function AdminSubjects() {
@@ -30,7 +23,9 @@ export default function AdminSubjects() {
       ]);
       setMaterias(Array.isArray(m) ? m : []);
       setCursos(Array.isArray(c) ? c : []);
-      setProfesores(Array.isArray(p) ? p : []);
+      // solo profesores activos (por si el backend devuelve más roles)
+      const onlyTeachers = (Array.isArray(p) ? p : []).filter(u => u.rol === 'profesor' && u.activo !== false);
+      setProfesores(onlyTeachers);
     } catch (e) {
       console.error("loadAll materias:", e);
       alert("No se pudieron cargar materias/cursos/profesores.");
@@ -68,11 +63,9 @@ export default function AdminSubjects() {
     if (!confirm("Asignar este profesor a la materia?")) return;
     try {
       await apiAsignarProfesorMateria(materiaId, Number(profesorId));
-      alert("Profesor asignado");
       await loadAll();
     } catch (e) {
-      console.error("asignarProfesor:", e);
-      alert(e.message || "Error al asignar profesor");
+      alert(e.message || "No se pudo asignar profesor");
     }
   }
 
@@ -81,11 +74,9 @@ export default function AdminSubjects() {
     if (!confirm("Asignar esta materia al curso?")) return;
     try {
       await apiAsignarMateriaCurso(materiaId, Number(cursoId));
-      alert("Materia asignada al curso");
       await loadAll();
     } catch (e) {
-      console.error("asignarCurso:", e);
-      alert(e.message || "Error al asignar curso");
+      alert(e.message || "No se pudo asignar curso");
     }
   }
 
@@ -96,11 +87,9 @@ export default function AdminSubjects() {
     if (codigo === null) return;
     try {
       await apiEditarMateria(m.id, { nombre: nombre.trim(), codigo: codigo.trim() });
-      alert("Materia actualizada");
       await loadAll();
     } catch (e) {
-      console.error("editarMateria:", e);
-      alert(e.message || "Error al editar materia");
+      alert(e.message || "No se pudo editar la materia");
     }
   }
 

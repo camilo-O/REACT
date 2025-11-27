@@ -111,7 +111,6 @@ export default function AdminCourses() {
 
                   <div className="card-actions">
                     <Link className="ghost" to={`/admin/courses/${c.id}`}>Ver</Link>
-                    <button className="ghost" onClick={() => navigator.clipboard?.writeText(c.join_code || '') || alert(`Código: ${c.join_code || 'no generado'}`)}>Código</button>
                     <button className="danger" onClick={() => eliminar(c.id)}>Eliminar</button>
                   </div>
                 </div>
