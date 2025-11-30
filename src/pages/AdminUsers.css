@@ -72,3 +72,20 @@
 .assign-feedback { margin-top:6px; padding:8px 10px; border-radius:8px; font-weight:700; }
 .assign-feedback.success { background:#ecfdf5; color:#065f46; }
 .assign-feedback.error { background:#fff1f2; color:#9f1239; }
+
+.field-error {
+  background:#fff1f2;
+  color:#9f1239;
+  font-size:12px;
+  padding:6px 8px;
+  border-radius:6px;
+  margin-top:-4px;
+  margin-bottom:4px;
+  border:1px solid #fecdd3;
+  font-weight:600;
+}
+
+.assign-modal form .assign-row input:invalid {
+  outline:2px solid #fecdd3;
+  border-color:#fda4af;
+}

@@ -8,31 +8,28 @@ function getToken() {
 
 async function request(path, { method='GET', body, auth=true } = {}) {
   const headers = { 'Content-Type': 'application/json' };
-  if (auth && getToken()) headers.Authorization = `Bearer ${getToken()}`;
+  const token = localStorage.getItem('token');
+  if (auth && token) headers.Authorization = `Bearer ${token}`;
+
   const url = `${API_URL}${path}`;
-  try {
-    const res = await fetch(url, {
-      method,
-      headers,
-      body: body ? JSON.stringify(body) : undefined
-    });
-    if (res.status === 401) {
-      // Logout automático si token inválido/expirado
-      localStorage.removeItem('token');
-      localStorage.removeItem('rol');
-      localStorage.removeItem('username');
-      localStorage.removeItem('userId');
-      throw new Error('No autorizado. Por favor inicia sesión de nuevo.');
-    }
-    if (!res.ok) {
-      const err = await res.json().catch(()=>({error:'Error'}));
-      throw new Error(err.error || `HTTP ${res.status}`);
-    }
-    return res.json();
-  } catch (e) {
-    console.error('API request error', { url, method, body, message: e.message });
-    throw e;
+  const opts = { method, headers };
+  if (body instanceof FormData) {
+    // quitar Content-Type para FormData
+    delete opts.headers['Content-Type'];
+    opts.body = body;
+  } else if (body) {
+    opts.body = JSON.stringify(body);
   }
+
+  const res = await fetch(url, opts);
+  if (res.status === 401 || res.status === 403) {
+    // token inválido/expirado: limpiar y redirigir a login
+    localStorage.clear();
+    throw new Error('Token inválido o expirado');
+  }
+  const data = await res.json().catch(()=>null);
+  if (!res.ok) throw new Error(data?.error || 'Error en la solicitud');
+  return data;
 }
 
 // Auth
@@ -111,6 +108,17 @@ export async function apiUnirseCurso(code) {
   return request('/cursos/unirse', { method:'POST', body:{ code } });
 }
 
+export async function apiCheckUsuarioUnico(params = {}) {
+  const q = new URLSearchParams(params).toString();
+  return request(`/auth/admin/usuarios/unique${q ? `?${q}` : ''}`);
+}
+
+export async function apiAdminSetPassword(id, password) {
+  return request(`/auth/admin/usuarios/${id}/password`, {
+    method: 'PUT',
+    body: { password }
+  });
+}
 
 
 
